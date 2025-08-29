@@ -8,19 +8,19 @@ const adminSchema = new mongoose.Schema({
 
 const Admin = mongoose.model('Admin', adminSchema)
 
-// ✅ Admin initializer
 export const initializeAdmin = async () => {
   try {
-    const existing = await Admin.findOne({ username: 'lifelinebloodcenter' })
-    if (!existing) {
+    // ✅ Ensure lifeline admin exists
+    const lifelineAdmin = await Admin.findOne({ username: 'lifelinebloodcenter' })
+    if (!lifelineAdmin) {
       const hashedPassword = await bcrypt.hash('lifeline@org', 10)
       await Admin.create({ username: 'lifelinebloodcenter', password: hashedPassword })
-      // console.log('✅ Default admin created: admin / admin123')
+      console.log('✅ Default admin created: lifelinebloodcenter / lifeline@org')
     } else {
-      console.log('✅ Admin already exists')
+      console.log('✅ lifeline admin already exists')
     }
   } catch (err) {
-    console.error('Error initializing admin:', err.message)
+    console.error('❌ Error initializing lifeline admin:', err)
   }
 }
 
