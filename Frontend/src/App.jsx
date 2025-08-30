@@ -15,7 +15,8 @@ const App = () => {
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/register" element={<DonorRegistration />} />
+          <Route path="/donor-register" element={<DonorRegistration />} />
+{/*         <Route path="/register" element={<DonorRegistration />} /> */}
         <Route path="/register/:campName" element={<DonorRegistration />} /> {/* ✅ Add this line */}
         <Route path="/admin" element={<Admin />} />
         <Route path="/admin-login" element={<AdminLogin />} />
