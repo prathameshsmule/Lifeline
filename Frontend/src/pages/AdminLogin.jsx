@@ -5,15 +5,15 @@ import logo from '../assets/images/admin logo.png'
 
 
 const AdminLogin = () => {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const handleLogin = async (e) => {
     e.preventDefault()
-    if (!username || !password) {
-      alert('Please enter username and password')
+    if (!email || !password) {
+      alert('Please enter email and password')
       return
     }
 
@@ -21,7 +21,7 @@ const AdminLogin = () => {
     try {
    const res = await axios.post(
   'https://www.lifelinebloodcenter.org/admin/login',
-  { username, password }
+  { email, password }
 )
       localStorage.setItem('admin-token', res.data.token)
       navigate('/admin')
@@ -44,10 +44,10 @@ const AdminLogin = () => {
         <form onSubmit={handleLogin}>
           <input
             className="form-control mb-3"
-            name="username"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            name="email"
+            placeholder="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
 
