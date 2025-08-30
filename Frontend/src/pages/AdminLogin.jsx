@@ -20,7 +20,7 @@ const AdminLogin = () => {
     setLoading(true)
     try {
    const res = await axios.post(
-  'https://www.lifelinebloodcenter.org/api/admin/login',
+  'http://www.lifelinebloodcenter.org/api/admin/login',
   { email, password }
 )
       localStorage.setItem('admin-token', res.data.token)
