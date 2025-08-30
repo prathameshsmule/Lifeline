@@ -25,7 +25,7 @@ const DonorRegistration = () => {
   }, [])
 
   useEffect(() => {
-    axios.get('https://www.lifelinebloodcenter.org/api/camps')
+    axios.get('http://www.lifelinebloodcenter.org/api/camps')
       .then(res => {
         setCamps(res.data)
         if (campIdFromUrl) {
