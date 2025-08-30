@@ -13,10 +13,11 @@ dotenv.config()
 
 const app = express()
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: process.env.FRONTEND_URL || 'https://www.lifelinebloodcenter.org', // make sure this is the correct URL
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'], // add headers like Authorization if you're passing tokens
   credentials: true
-}))
+}));
 
 app.use(express.json())
 
