@@ -22,7 +22,7 @@ const DonorRegistration = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      await axios.post('https://www.lifelinebloodcenter.org/donors', form)
+      await axios.post('https://www.lifelinebloodcenter.org/api/donors', form)
       alert('Donor registered successfully!')
       setForm({ name: '', age: '', weight: '', bloodGroup: '', email: '', phone: '', address: '', camp: campName || '' })
     } catch (err) {
