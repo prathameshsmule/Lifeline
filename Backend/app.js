@@ -35,9 +35,9 @@ app.get('/api', (req, res) => {
 })
 
 // Feature routes
-app.use('/api/donors', donorRoutes)
-app.use('/api/admin', adminRoutes)
-app.use('/api/camps', campRoutes)
+app.use('/donors', donorRoutes)
+app.use('/admin', adminRoutes)
+app.use('/camps', campRoutes)
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
