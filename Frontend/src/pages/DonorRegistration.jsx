@@ -25,7 +25,7 @@ const DonorRegistration = () => {
   }, [])
 
   useEffect(() => {
-    axios.get('http://lifelinebloodcenter.org/api/camps')
+    axios.get('https://www.lifelinebloodcenter.org/api/camps')
       .then(res => {
         setCamps(res.data)
         if (campIdFromUrl) {
@@ -123,7 +123,7 @@ const DonorRegistration = () => {
     }
 
     try {
-      await axios.post('http://lifelinebloodcenter.org/api/donors', formData)
+      await axios.post('https://www.lifelinebloodcenter.org/api/donors', formData)
       await sendEmail(formData)
 
       alert('🎉 Registration successful! Check your email for confirmation.')
