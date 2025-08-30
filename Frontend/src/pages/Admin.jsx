@@ -63,7 +63,7 @@ const Admin = () => {
 
   const fetchCamps = async () => {
     try {
-      const res = await axios.get("http://lifelinebloodcenter.org/api/camps")
+      const res = await axios.get("https://lifelinebloodcenter.org/api/camps")
       setCamps(res.data)
     } catch (err) {
       setCamps([])
