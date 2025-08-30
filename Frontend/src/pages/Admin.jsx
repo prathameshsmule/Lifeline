@@ -30,7 +30,7 @@ const Admin = () => {
   useEffect(() => {
     const token = localStorage.getItem("admin-token")
     if (!token) {
-      navigate("/admin-login")
+      navigate("/login")
     } else {
       fetchCamps()
     }
@@ -63,7 +63,7 @@ const Admin = () => {
 
   const fetchCamps = async () => {
     try {
-      const res = await axios.get("https://lifelinebloodcenter.org/api/camps")
+      const res = await axios.get("https://www.lifelinebloodcenter.org/api/camps")
       setCamps(res.data)
     } catch (err) {
       setCamps([])
@@ -83,7 +83,7 @@ const Admin = () => {
     e.preventDefault()
     try {
       const token = localStorage.getItem("admin-token")
-      await axios.post("http://lifelinebloodcenter.org/api/camps", newCamp, {
+      await axios.post("https://www.lifelinebloodcenter.org/camps", newCamp, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setNewCamp({
@@ -107,7 +107,7 @@ const Admin = () => {
     if (!window.confirm("Are you sure you want to delete this donor?")) return
     try {
       const token = localStorage.getItem("admin-token")
-      await axios.delete(`http://lifelinebloodcenter.org/api/donors/${id}`, {
+      await axios.delete(`http://lifelinebloodcenter.org/donors/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       alert("Donor deleted successfully!")
@@ -130,7 +130,7 @@ const Admin = () => {
   const handleEditSave = async (id) => {
     try {
       const token = localStorage.getItem("admin-token")
-      await axios.put(`http://lifelinebloodcenter.org/api/donors/${id}`, editForm, {
+      await axios.put(`https://www.lifelinebloodcenter.org/donors/${id}`, editForm, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setDonors((prev) =>
@@ -516,7 +516,7 @@ const Admin = () => {
                             try {
                               const token = localStorage.getItem("admin-token")
                               await axios.put(
-                                `http://lifelinebloodcenter.org/api/donors/${donor._id}`,
+                                `https://www.lifelinebloodcenter.org/donors/${donor._id}`,
                                 { remark: newRemark },
                                 {
                                   headers: { Authorization: `Bearer ${token}` },
