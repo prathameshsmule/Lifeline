@@ -51,20 +51,23 @@ const Admin = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       )
-      setDonors(res.data)
+      console.log("Donors response:", res.data)
+      setDonors(Array.isArray(res.data) ? res.data : [])
     } catch (error) {
       console.error("Failed to fetch donors:", error)
       if (error.response?.status === 401 || error.response?.status === 403) {
         localStorage.removeItem("admin-token")
         navigate("/admin-login")
       }
+      setDonors([])
     }
   }
 
   const fetchCamps = async () => {
     try {
       const res = await axios.get("https://www.lifelinebloodcenter.org/api/camps")
-      setCamps(res.data)
+      console.log("Camps response:", res.data)
+      setCamps(Array.isArray(res.data) ? res.data : [])
     } catch (err) {
       setCamps([])
     }
@@ -144,7 +147,7 @@ const Admin = () => {
 
   // PDF Download
   const downloadPDF = () => {
-    if (!donors.length) {
+    if (!Array.isArray(donors) || donors.length === 0) {
       alert("No donors to export.")
       return
     }
@@ -300,289 +303,234 @@ const Admin = () => {
 
       {/* Camp Cards */}
       <div className="row g-3">
-        {camps.map((camp) => (
-          <div key={camp._id} className="col-md-4">
-            <div className="card h-100">
-              <div className="card-body">
-                <h5 className="card-title text-danger">{camp.name}</h5>
-                <p className="card-text">
-                  <strong>Location:</strong> {camp.location || "N/A"}
-                  <br />
-                  <strong>Date:</strong>{" "}
-                  {camp.date ? new Date(camp.date).toLocaleDateString() : "N/A"}
-                  <br />
-                  <strong>Organizer:</strong> {camp.organizerName || "N/A"}
-                  <br />
-                  <strong>Contact:</strong> {camp.organizerContact || "N/A"}
-                  <br />
-                  <strong>PRO:</strong> {camp.proName || "N/A"}
-                  <br />
-                  <strong>Hospital:</strong> {camp.hospitalName || "N/A"}
-                  <br />
-                  <strong>Donors Registered:</strong> {camp.donorCount ?? 0}
-                </p>
-                <button
-                  className="btn btn-outline-danger btn-sm me-2"
-                  onClick={() => setSelectedCamp(camp._id)}
-                >
-                  View Donors
-                </button>
-
-                <div className="mt-2">
+        {Array.isArray(camps) &&
+          camps.map((camp) => (
+            <div key={camp._id} className="col-md-4">
+              <div className="card h-100">
+                <div className="card-body">
+                  <h5 className="card-title text-danger">{camp.name}</h5>
+                  <p className="card-text">
+                    <strong>Location:</strong> {camp.location || "N/A"}
+                    <br />
+                    <strong>Date:</strong>{" "}
+                    {camp.date ? new Date(camp.date).toLocaleDateString() : "N/A"}
+                    <br />
+                    <strong>Organizer:</strong> {camp.organizerName || "N/A"}
+                    <br />
+                    <strong>Contact:</strong> {camp.organizerContact || "N/A"}
+                    <br />
+                    <strong>PRO:</strong> {camp.proName || "N/A"}
+                    <br />
+                    <strong>Hospital:</strong> {camp.hospitalName || "N/A"}
+                  </p>
                   <button
-                    className="btn btn-sm btn-outline-primary me-2"
-                    onClick={() => {
-                      const shareLink = `${window.location.origin}/register?campId=${camp._id}`
-                      navigator.clipboard.writeText(shareLink)
-                      alert(`✅ Registration link copied:\n${shareLink}`)
-                    }}
+                    className="btn btn-danger me-2"
+                    onClick={() => setSelectedCamp(camp._id)}
                   >
-                    Copy Registration Link
+                    View Donors
                   </button>
-
-                  <button
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={() =>
-                      setShowQR((prev) => ({
-                        ...prev,
-                        [camp._id]: !prev[camp._id],
-                      }))
-                    }
-                  >
-                    {showQR?.[camp._id] ? "Hide QR" : "Show QR"}
-                  </button>
-
-                  {showQR?.[camp._id] && (
-                    <div className="mt-2">
-                      <QRCodeCanvas
-                        value={`${window.location.origin}/register?campId=${camp._id}`}
-                        size={128}
-                      />
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
 
-      {/* Donor Table */}
+      {/* Donors Section */}
       {selectedCamp && (
-        <div className="mt-5">
-          <h4 className="text-danger">
-            Donors for Camp: {camps.find((c) => c._id === selectedCamp)?.name || ""}
-          </h4>
+        <>
+          <div className="my-3">
+            <h3 className="text-danger mb-3">
+              Donors List for Camp:{" "}
+              {camps.find((c) => c._id === selectedCamp)?.name || ""}
+            </h3>
 
-          {/* Search box */}
-          <input
-            type="text"
-            className="form-control mb-3"
-            placeholder="Search donors by name, blood group, or phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+            <div className="input-group mb-3">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search donors by name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <button className="btn btn-outline-danger" onClick={downloadPDF}>
+                Download PDF
+              </button>
+            </div>
 
-          <button className="btn btn-success mb-3" onClick={downloadPDF}>
-            Download PDF
-          </button>
-
-          <div className="table-responsive">
-            <table className="table table-bordered table-hover text-center align-middle">
-              <thead className="table-danger">
-                <tr>
-                  <th>#</th>
-                  <th>Name</th>
-                  <th>Blood Group</th>
-                  <th>Age</th>
-                  <th>Weight (kg)</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Address</th>
-                  <th>Remark</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {donors
-                  .filter((donor) =>
-                    `${donor.name} ${donor.bloodGroup} ${donor.phone}`
-                      .toLowerCase()
-                      .includes(searchTerm.toLowerCase())
-                  )
-                  .map((donor, index) => (
-                    <tr key={donor._id}>
-                      <td>{index + 1}</td>
-                      <td>
-                        {editDonorId === donor._id ? (
-                          <input
-                            className="form-control form-control-sm"
-                            name="name"
-                            value={editForm.name}
-                            onChange={handleEditChange}
-                          />
-                        ) : (
-                          donor.name
-                        )}
-                      </td>
-                      <td>
-                        {editDonorId === donor._id ? (
-                          <select
-                            className="form-select form-select-sm"
-                            name="bloodGroup"
-                            value={editForm.bloodGroup}
-                            onChange={handleEditChange}
-                          >
-                            <option value="">Select</option>
-                            <option value="A+">A+</option>
-                            <option value="A-">A-</option>
-                            <option value="B+">B+</option>
-                            <option value="B-">B-</option>
-                            <option value="AB+">AB+</option>
-                            <option value="AB-">AB-</option>
-                            <option value="O+">O+</option>
-                            <option value="O-">O-</option>
-                          </select>
-                        ) : (
-                          donor.bloodGroup
-                        )}
-                      </td>
-                      <td>
-                        {editDonorId === donor._id ? (
-                          <input
-                            className="form-control form-control-sm"
-                            name="age"
-                            value={editForm.age}
-                            onChange={handleEditChange}
-                          />
-                        ) : (
-                          donor.age
-                        )}
-                      </td>
-                      <td>
-                        {editDonorId === donor._id ? (
-                          <input
-                            className="form-control form-control-sm"
-                            name="weight"
-                            value={editForm.weight}
-                            onChange={handleEditChange}
-                          />
-                        ) : (
-                          donor.weight
-                        )}
-                      </td>
-                      <td>
-                        {editDonorId === donor._id ? (
-                          <input
-                            className="form-control form-control-sm"
-                            name="email"
-                            value={editForm.email}
-                            onChange={handleEditChange}
-                          />
-                        ) : (
-                          donor.email
-                        )}
-                      </td>
-                      <td>
-                        {editDonorId === donor._id ? (
-                          <input
-                            className="form-control form-control-sm"
-                            name="phone"
-                            value={editForm.phone}
-                            onChange={handleEditChange}
-                          />
-                        ) : (
-                          donor.phone
-                        )}
-                      </td>
-                      <td>
-                        {editDonorId === donor._id ? (
-                          <input
-                            className="form-control form-control-sm"
-                            name="address"
-                            value={editForm.address}
-                            onChange={handleEditChange}
-                          />
-                        ) : (
-                          donor.address
-                        )}
-                      </td>
-                      <td>
-                        <select
-                          className="form-select form-select-sm"
-                          value={donor.remark || ""}
-                          onChange={async (e) => {
-                            const newRemark = e.target.value
-                            try {
-                              const token = localStorage.getItem("admin-token")
-                              await axios.put(
-                                `https://www.lifelinebloodcenter.org/api/donors/${donor._id}`,
-                                { remark: newRemark },
-                                {
-                                  headers: { Authorization: `Bearer ${token}` },
-                                }
-                              )
-                              setDonors((prev) =>
-                                prev.map((d) =>
-                                  d._id === donor._id
-                                    ? { ...d, remark: newRemark }
-                                    : d
-                                )
-                              )
-                            } catch {
-                              alert("Error updating remark")
-                            }
-                          }}
-                        >
-                          <option value="">Select</option>
-                          <option value="Donation Done">Donation Done</option>
-                          <option value="Not Done">Not Done</option>
-                        </select>
-                      </td>
-                      <td>
-                        {editDonorId === donor._id ? (
-                          <>
-                            <button
-                              className="btn btn-sm btn-success me-2"
-                              onClick={() => handleEditSave(donor._id)}
-                            >
-                              Save
-                            </button>
-                            <button
-                              className="btn btn-sm btn-secondary"
-                              onClick={() => setEditDonorId(null)}
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              className="btn btn-sm btn-warning me-2"
-                              onClick={() => handleEditClick(donor)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="btn btn-sm btn-danger"
-                              onClick={() => handleDeleteDonor(donor._id)}
-                            >
-                              Delete
-                            </button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                {donors.length === 0 && (
+            <div className="table-responsive" style={{ maxHeight: "500px" }}>
+              <table className="table table-bordered table-hover align-middle">
+                <thead className="table-danger sticky-top">
                   <tr>
-                    <td colSpan="10">No donor data available.</td>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Blood Group</th>
+                    <th>Age</th>
+                    <th>Weight (kg)</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Address</th>
+                    <th>Remark</th>
+                    <th>QR Code</th>
+                    <th>Actions</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {Array.isArray(donors) &&
+                    donors
+                      .filter((donor) =>
+                        donor.name.toLowerCase().includes(searchTerm.toLowerCase())
+                      )
+                      .map((donor, index) => (
+                        <tr key={donor._id}>
+                          <td>{index + 1}</td>
+                          <td>
+                            {editDonorId === donor._id ? (
+                              <input
+                                type="text"
+                                name="name"
+                                value={editForm.name}
+                                onChange={handleEditChange}
+                              />
+                            ) : (
+                              donor.name
+                            )}
+                          </td>
+                          <td>{donor.bloodGroup}</td>
+                          <td>
+                            {editDonorId === donor._id ? (
+                              <input
+                                type="number"
+                                name="age"
+                                value={editForm.age}
+                                onChange={handleEditChange}
+                                min={0}
+                              />
+                            ) : (
+                              donor.age
+                            )}
+                          </td>
+                          <td>
+                            {editDonorId === donor._id ? (
+                              <input
+                                type="number"
+                                name="weight"
+                                value={editForm.weight}
+                                onChange={handleEditChange}
+                                min={0}
+                              />
+                            ) : (
+                              donor.weight
+                            )}
+                          </td>
+                          <td>
+                            {editDonorId === donor._id ? (
+                              <input
+                                type="email"
+                                name="email"
+                                value={editForm.email}
+                                onChange={handleEditChange}
+                              />
+                            ) : (
+                              donor.email
+                            )}
+                          </td>
+                          <td>
+                            {editDonorId === donor._id ? (
+                              <input
+                                type="text"
+                                name="phone"
+                                value={editForm.phone}
+                                onChange={handleEditChange}
+                              />
+                            ) : (
+                              donor.phone
+                            )}
+                          </td>
+                          <td>
+                            {editDonorId === donor._id ? (
+                              <input
+                                type="text"
+                                name="address"
+                                value={editForm.address}
+                                onChange={handleEditChange}
+                              />
+                            ) : (
+                              donor.address
+                            )}
+                          </td>
+                          <td>
+                            {editDonorId === donor._id ? (
+                              <input
+                                type="text"
+                                name="remark"
+                                value={editForm.remark}
+                                onChange={handleEditChange}
+                              />
+                            ) : (
+                              donor.remark || ""
+                            )}
+                          </td>
+                          <td>
+                            <button
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={() =>
+                                setShowQR((prev) => ({
+                                  ...prev,
+                                  [donor._id]: !prev[donor._id],
+                                }))
+                              }
+                            >
+                              {showQR[donor._id] ? "Hide" : "Show"} QR
+                            </button>
+                            {showQR[donor._id] && (
+                              <QRCodeCanvas
+                                value={`${window.location.origin}/donor/${donor._id}`}
+                                size={128}
+                                level="H"
+                                includeMargin={true}
+                              />
+                            )}
+                          </td>
+                          <td>
+                            {editDonorId === donor._id ? (
+                              <>
+                                <button
+                                  className="btn btn-success btn-sm me-2"
+                                  onClick={() => handleEditSave(donor._id)}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={() => setEditDonorId(null)}
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  className="btn btn-primary btn-sm me-2"
+                                  onClick={() => handleEditClick(donor)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => handleDeleteDonor(donor._id)}
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   )
