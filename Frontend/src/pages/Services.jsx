@@ -249,10 +249,10 @@ const Services = () => {
           ✉️ Email: <strong>info@lifelinebloodcenter.org</strong>
         </p>
         <p>
-          📞 Contact: <strong>+91 98765 43210 /+91 98765 43210</strong>
+          📞 Contact: <strong>+91 92840 52787 /+91 98765 43210</strong>
         </p>
            <p>
-          📞 Contact: <strong>+91 98765 43210</strong>
+          📞 Contact: <strong>+91 88888 27722</strong>
         </p>
         
       </div>
