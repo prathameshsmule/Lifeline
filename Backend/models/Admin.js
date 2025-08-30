@@ -11,9 +11,9 @@ const Admin = mongoose.model('Admin', adminSchema)
 export const initializeAdmin = async () => {
   try {
     // ✅ Ensure lifeline admin exists
-    const lifelineAdmin = await Admin.findOne({ username: 'lifelinebloodcenter' })
+    const lifelineAdmin = await Admin.findOne({ username: 'admin' })
     if (!lifelineAdmin) {
-      const hashedPassword = await bcrypt.hash('lifeline@org', 10)
+      const hashedPassword = await bcrypt.hash('admin', 10)
       await Admin.create({ username: 'lifelinebloodcenter', password: hashedPassword })
       console.log('✅ Default admin created: lifelinebloodcenter / lifeline@org')
     } else {
