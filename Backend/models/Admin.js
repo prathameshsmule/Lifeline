@@ -14,7 +14,7 @@ export const initializeAdmin = async () => {
     const lifelineAdmin = await Admin.findOne({ username: 'admin' })
     if (!lifelineAdmin) {
       const hashedPassword = await bcrypt.hash('admin', 10)
-      await Admin.create({ username: 'lifelinebloodcenter', password: hashedPassword })
+      await Admin.create({ username: 'admin', password: hashedPassword })
       console.log('✅ Default admin created: lifelinebloodcenter / lifeline@org')
     } else {
       console.log('✅ lifeline admin already exists')
