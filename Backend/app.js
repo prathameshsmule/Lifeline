@@ -12,16 +12,18 @@ import adminRoutes from './routes/adminRoutes.js'
 dotenv.config()
 
 const app = express()
+
+// CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://www.lifelinebloodcenter.org', // make sure this is the correct URL
+  origin: process.env.FRONTEND_URL || 'https://www.lifelinebloodcenter.org',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'], // add headers like Authorization if you're passing tokens
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
-}));
+}))
 
 app.use(express.json())
 
-// ✅ Connect to DB and initialize admin
+// Connect to DB and initialize admin
 connectDB().then(() => initializeAdmin())
 
 // Root test route
@@ -35,9 +37,9 @@ app.get('/api', (req, res) => {
 })
 
 // Feature routes
-app.use('/donors', donorRoutes)
-app.use('/admin', adminRoutes)
-app.use('/camps', campRoutes)
+app.use('/api/donors', donorRoutes)
+app.use('/api/admin', adminRoutes)   // ✅ updated to /api/admin
+app.use('/api/camps', campRoutes)
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
