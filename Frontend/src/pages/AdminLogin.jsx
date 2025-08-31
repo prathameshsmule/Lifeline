@@ -19,9 +19,10 @@ const AdminLogin = () => {
     setLoading(true)
     try {
       const res = await axios.post(
-  `/api/admin/login`,
-  { email, password }
-)
+        'https://www.lifelinebloodcenter.org/api/admin/login',
+        { email, password }
+      )
+
       localStorage.setItem('admin-token', res.data.token)
       navigate('/admin')
     } catch (err) {
@@ -44,7 +45,7 @@ const AdminLogin = () => {
           <input
             className="form-control mb-3"
             name="email"
-            placeholder="email"
+            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
