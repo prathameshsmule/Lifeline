@@ -3,8 +3,6 @@ import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 import logo from '../assets/images/admin logo.png'
 
-const API_URL = import.meta.env.VITE_APP_API_URL
-
 const AdminLogin = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,9 +19,9 @@ const AdminLogin = () => {
     setLoading(true)
     try {
       const res = await axios.post(
-        `${API_URL}/api/admin/login`,
-        { email, password }
-      )
+  `/api/admin/login`,
+  { email, password }
+)
       localStorage.setItem('admin-token', res.data.token)
       navigate('/admin')
     } catch (err) {
