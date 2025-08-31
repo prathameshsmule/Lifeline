@@ -19,7 +19,7 @@ const App = () => {
         <Route path="/register" element={<DonorRegistration />} />
         <Route path="/register/:campName" element={<DonorRegistration />} /> {/* ✅ Add this line */}
         <Route path="/admin" element={<Admin />} />
-        <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/login" element={<AdminLogin />} />
         <Route path="/admin/camp/:campName" element={<CampDonorList />} />
         <Route path="/services" element={<Services />} />
       </Routes>
