@@ -46,8 +46,7 @@ const Admin = () => {
 
   const fetchDonors = async (token) => {
     try {
-        const res = await axios.get(
-      `https://www.lifelinebloodcenter.org/api/donors/camp/${selectedCamp}`,
+        const res = await axios.get(`${API_BASE}/donors/camp/${selectedCamp}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
       setDonors(res.data)
