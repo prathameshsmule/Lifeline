@@ -83,7 +83,7 @@ const Admin = () => {
     e.preventDefault()
     try {
       const token = localStorage.getItem("admin-token")
-      await axios.post("https://lifelinebloodcenter.org/api/camps", newCamp, {
+      await axios.post("https://www.lifelinebloodcenter.org/api/camps", newCamp, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setNewCamp({
@@ -107,7 +107,7 @@ const Admin = () => {
     if (!window.confirm("Are you sure you want to delete this donor?")) return
     try {
       const token = localStorage.getItem("admin-token")
-      await axios.delete(`https://lifelinebloodcenter.org/api/donors/${id}`, {
+      await axios.delete(`https://www.lifelinebloodcenter.org/api/donors/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       alert("Donor deleted successfully!")
@@ -516,7 +516,7 @@ const Admin = () => {
                             try {
                               const token = localStorage.getItem("admin-token")
                               await axios.put(
-                                `https://lifelinebloodcenter.org/api/donors/${donor._id}`,
+                                `https://www.lifelinebloodcenter.org/api/donors/${donor._id}`,
                                 { remark: newRemark },
                                 {
                                   headers: { Authorization: `Bearer ${token}` },
