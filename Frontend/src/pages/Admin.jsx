@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { QRCodeCanvas } from "qrcode.react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
+const API_BASE = "https://www.lifelinebloodcenter.org/api";
 
 const Admin = () => {
   const [donors, setDonors] = useState([])
