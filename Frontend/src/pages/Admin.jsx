@@ -46,12 +46,10 @@ const Admin = () => {
 
   const fetchDonors = async (token) => {
     try {
-      const res = await axios.get(
-        `https://www.lifelinebloodcenter.org/api/donors/camp/${selectedCamp}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      )
+        const res = await axios.get(
+      `https://www.lifelinebloodcenter.org/api/donors/camp/${selectedCamp}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
       setDonors(res.data)
     } catch (error) {
       console.error("Failed to fetch donors:", error)
