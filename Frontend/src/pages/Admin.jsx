@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom"
 import { QRCodeCanvas } from "qrcode.react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
-const API_BASE = "https://www.lifelinebloodcenter.org/api";
 
 const Admin = () => {
   const [donors, setDonors] = useState([])
@@ -46,9 +45,12 @@ const Admin = () => {
 
   const fetchDonors = async (token) => {
     try {
-        const res = await axios.get(`${API_BASE}/donors/camp/${selectedCamp}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+      const res = await axios.get(
+        `https://www.lifelinebloodcenter.org/api/donors/camp/${selectedCamp}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
       setDonors(res.data)
     } catch (error) {
       console.error("Failed to fetch donors:", error)
@@ -81,7 +83,7 @@ const Admin = () => {
     e.preventDefault()
     try {
       const token = localStorage.getItem("admin-token")
-      await axios.post("https://www.lifelinebloodcenter.org/api/camps", newCamp, {
+      await axios.post("https://lifelinebloodcenter.org/api/camps", newCamp, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setNewCamp({
@@ -105,7 +107,7 @@ const Admin = () => {
     if (!window.confirm("Are you sure you want to delete this donor?")) return
     try {
       const token = localStorage.getItem("admin-token")
-      await axios.delete(`https://www.lifelinebloodcenter.org/api/donors/${id}`, {
+      await axios.delete(`https://lifelinebloodcenter.org/api/donors/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       alert("Donor deleted successfully!")
