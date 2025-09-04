@@ -4,17 +4,17 @@ import { useNavigate } from "react-router-dom"
 import { QRCodeCanvas } from "qrcode.react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
-
 const API_BASE = "https://lifelinebloodcenter.org/api"
-
 const Admin = () => {
   const [donors, setDonors] = useState([])
   const [camps, setCamps] = useState([])
   const [selectedCamp, setSelectedCamp] = useState(null)
   const [showQR, setShowQR] = useState({})
   const [searchTerm, setSearchTerm] = useState("")
+
   const [editDonorId, setEditDonorId] = useState(null)
   const [editForm, setEditForm] = useState({})
+
   const [newCamp, setNewCamp] = useState({
     name: "",
     location: "",
@@ -27,7 +27,6 @@ const Admin = () => {
 
   const navigate = useNavigate()
 
-  // Check token on mount
   useEffect(() => {
     const token = localStorage.getItem("admin-token")
     if (!token) {
@@ -37,7 +36,6 @@ const Admin = () => {
     }
   }, [])
 
-  // Fetch donors when camp selected
   useEffect(() => {
     const token = localStorage.getItem("admin-token")
     if (selectedCamp && token) {
@@ -47,9 +45,12 @@ const Admin = () => {
 
   const fetchDonors = async (token) => {
     try {
-      const res = await axios.get(`${API_BASE}/donors/camp/${selectedCamp}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await axios.get(
+        `https://www.lifelinebloodcenter.org/api/donors/camp/${selectedCamp}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
       setDonors(res.data)
     } catch (error) {
       console.error("Failed to fetch donors:", error)
@@ -62,9 +63,9 @@ const Admin = () => {
 
   const fetchCamps = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/camps`)
+      const res = await axios.get("https://www.lifelinebloodcenter.org/api/camps")
       setCamps(res.data)
-    } catch {
+    } catch (err) {
       setCamps([])
     }
   }
@@ -82,7 +83,7 @@ const Admin = () => {
     e.preventDefault()
     try {
       const token = localStorage.getItem("admin-token")
-      await axios.post(`https://lifelinebloodcenter.org/api/camps`, newCamp, {
+      await axios.post("https://lifelinebloodcenter.org/api/camps", newCamp, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setNewCamp({
@@ -96,25 +97,27 @@ const Admin = () => {
       })
       fetchCamps()
       alert("Camp added successfully!")
-    } catch {
+    } catch (err) {
       alert("Error adding camp.")
     }
   }
 
+  // Delete donor
   const handleDeleteDonor = async (id) => {
     if (!window.confirm("Are you sure you want to delete this donor?")) return
     try {
       const token = localStorage.getItem("admin-token")
-      await axios.delete(`${API_BASE}/donors/${id}`, {
+      await axios.delete(`https://lifelinebloodcenter.org/api/donors/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       alert("Donor deleted successfully!")
-      fetchDonors(token)
-    } catch {
+      fetchDonors(token) // refresh list
+    } catch (err) {
       alert("Error deleting donor")
     }
   }
 
+  // Edit donor
   const handleEditClick = (donor) => {
     setEditDonorId(donor._id)
     setEditForm({ ...donor })
@@ -127,18 +130,19 @@ const Admin = () => {
   const handleEditSave = async (id) => {
     try {
       const token = localStorage.getItem("admin-token")
-      await axios.put(`${API_BASE}/donors/${id}`, editForm, {
+      await axios.put(`https://www.lifelinebloodcenter.org/api/donors/${id}`, editForm, {
         headers: { Authorization: `Bearer ${token}` },
       })
       setDonors((prev) =>
         prev.map((d) => (d._id === id ? { ...editForm } : d))
       )
       setEditDonorId(null)
-    } catch {
+    } catch (err) {
       alert("Error saving donor update")
     }
   }
 
+  // PDF Download
   const downloadPDF = () => {
     if (!donors.length) {
       alert("No donors to export.")
@@ -512,7 +516,7 @@ const Admin = () => {
                             try {
                               const token = localStorage.getItem("admin-token")
                               await axios.put(
-                                `${API_BASE}/donors/${donor._id}`,
+                                `https://lifelinebloodcenter.org/api/donors/${donor._id}`,
                                 { remark: newRemark },
                                 {
                                   headers: { Authorization: `Bearer ${token}` },
