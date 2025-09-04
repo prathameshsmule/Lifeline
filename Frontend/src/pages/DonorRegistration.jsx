@@ -123,7 +123,7 @@ const DonorRegistration = () => {
     }
 
     try {
-      await axios.post('https://www.lifelinebloodcenter.org/api/donors', formData)
+     await axios.post('https://www.lifelinebloodcenter.org/api/donors', formData)
       await sendEmail(formData)
 
       alert('🎉 Registration successful! Check your email for confirmation.')
