@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { QRCodeCanvas } from "qrcode.react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
-
+const API_BASE = "https://lifelinebloodcenter.org/api"
 const Admin = () => {
   const [donors, setDonors] = useState([])
   const [camps, setCamps] = useState([])
@@ -36,32 +36,30 @@ const Admin = () => {
     }
   }, [])
 
- useEffect(() => {
-  if (camps.length > 0 && !selectedCamp) {
-    setSelectedCamp(camps[0]._id)
-  }
-}, [camps])
+  useEffect(() => {
+    const token = localStorage.getItem("admin-token")
+    if (selectedCamp && token) {
+      fetchDonors(token)
+    }
+  }, [selectedCamp])
 
-
-const fetchDonors = async (token) => {
-  try {
-    console.log("Fetching donors for camp:", selectedCamp)
-    const res = await axios.get(
-      `https://www.lifelinebloodcenter.org/api/donors/camp/${selectedCamp}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    )
-    console.log("Donors response:", res.data)
-    setDonors(res.data)
-  } catch (error) {
-    console.error("Failed to fetch donors:", error)
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      localStorage.removeItem("admin-token")
-      navigate("/admin-login")
+  const fetchDonors = async (token) => {
+    try {
+      const res = await axios.get(
+        `https://www.lifelinebloodcenter.org/api/donors/camp/${selectedCamp}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+      setDonors(res.data)
+    } catch (error) {
+      console.error("Failed to fetch donors:", error)
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        localStorage.removeItem("admin-token")
+        navigate("/admin-login")
+      }
     }
   }
-}
-
-
 
   const fetchCamps = async () => {
     try {
