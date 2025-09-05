@@ -43,22 +43,23 @@ const Admin = () => {
     }
   }, [selectedCamp])
 
- const fetchDonors = async (token) => {
-  try {
-    const res = await axios.get(
-      `https://www.lifelinebloodcenter.org/api/donors/camp/${selectedCamp}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    )
-    console.log("Donors fetched:", res.data)  // <--- check this
-    setDonors(res.data)
-  } catch (error) {
-    console.error("Failed to fetch donors:", error.response || error)
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      localStorage.removeItem("admin-token")
-      navigate("/admin-login")
+  const fetchDonors = async (token) => {
+    try {
+      const res = await axios.get(
+        `https://www.lifelinebloodcenter.org/api/donors/camp/${selectedCamp}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+      setDonors(res.data)
+    } catch (error) {
+      console.error("Failed to fetch donors:", error)
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        localStorage.removeItem("admin-token")
+        navigate("/admin-login")
+      }
     }
   }
-}
 
   const fetchCamps = async () => {
     try {
