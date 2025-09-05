@@ -1,19 +1,21 @@
-import React, { useState, useEffect } from "react"
-import axios from "axios"
-import { useNavigate } from "react-router-dom"
-import { QRCodeCanvas } from "qrcode.react"
-import jsPDF from "jspdf"
-import autoTable from "jspdf-autotable"
-const API_BASE = "https://lifelinebloodcenter.org/api"
-const Admin = () => {
-  const [donors, setDonors] = useState([])
-  const [camps, setCamps] = useState([])
-  const [selectedCamp, setSelectedCamp] = useState(null)
-  const [showQR, setShowQR] = useState({})
-  const [searchTerm, setSearchTerm] = useState("")
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { QRCodeCanvas } from "qrcode.react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
-  const [editDonorId, setEditDonorId] = useState(null)
-  const [editForm, setEditForm] = useState({})
+const API_BASE = "https://lifelinebloodcenter.org/api";
+
+const Admin = () => {
+  const [donors, setDonors] = useState([]);
+  const [camps, setCamps] = useState([]);
+  const [selectedCamp, setSelectedCamp] = useState(null);
+  const [showQR, setShowQR] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [editDonorId, setEditDonorId] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
   const [newCamp, setNewCamp] = useState({
     name: "",
@@ -23,69 +25,78 @@ const Admin = () => {
     organizerContact: "",
     proName: "",
     hospitalName: "",
-  })
+  });
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
+  // Check login
   useEffect(() => {
-    const token = localStorage.getItem("admin-token")
+    const token = localStorage.getItem("admin-token");
     if (!token) {
-      navigate("/admin-login")
+      navigate("/admin-login");
     } else {
-      fetchCamps()
+      fetchCamps();
     }
-  }, [])
+  }, []);
 
+  // Fetch donors when selectedCamp changes
   useEffect(() => {
-    const token = localStorage.getItem("admin-token")
-    if (selectedCamp && token) {
-      fetchDonors(token)
-    }
-  }, [selectedCamp])
+    if (selectedCamp) fetchDonors();
+  }, [selectedCamp]);
 
-  const fetchDonors = async (token) => {
+  // Fetch donors
+  const fetchDonors = async () => {
+    const token = localStorage.getItem("admin-token");
+    if (!token) {
+      navigate("/admin-login");
+      return;
+    }
+
     try {
-      const res = await axios.get(
-        `https://www.lifelinebloodcenter.org/api/donors/camp/${selectedCamp}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      )
-      setDonors(res.data)
+      const res = await axios.get(`${API_BASE}/donors/camp/${selectedCamp}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log("Donors fetched:", res.data);
+      setDonors(res.data);
     } catch (error) {
-      console.error("Failed to fetch donors:", error)
+      console.error("Failed to fetch donors:", error.response || error);
+      setDonors([]);
       if (error.response?.status === 401 || error.response?.status === 403) {
-        localStorage.removeItem("admin-token")
-        navigate("/admin-login")
+        localStorage.removeItem("admin-token");
+        navigate("/admin-login");
       }
     }
-  }
+  };
 
+  // Fetch camps
   const fetchCamps = async () => {
     try {
-      const res = await axios.get("https://www.lifelinebloodcenter.org/api/camps")
-      setCamps(res.data)
+      const res = await axios.get(`${API_BASE}/camps`);
+      setCamps(res.data);
     } catch (err) {
-      setCamps([])
+      console.error("Failed to fetch camps:", err);
+      setCamps([]);
     }
-  }
+  };
 
+  // Logout
   const handleLogout = () => {
-    localStorage.removeItem("admin-token")
-    navigate("/admin-login")
-  }
+    localStorage.removeItem("admin-token");
+    navigate("/admin-login");
+  };
 
+  // New camp form handling
   const handleNewCampChange = (e) => {
-    setNewCamp({ ...newCamp, [e.target.name]: e.target.value })
-  }
+    setNewCamp({ ...newCamp, [e.target.name]: e.target.value });
+  };
 
   const handleNewCampSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      const token = localStorage.getItem("admin-token")
-      await axios.post("https://lifelinebloodcenter.org/api/camps", newCamp, {
+      const token = localStorage.getItem("admin-token");
+      await axios.post(`${API_BASE}/camps`, newCamp, {
         headers: { Authorization: `Bearer ${token}` },
-      })
+      });
       setNewCamp({
         name: "",
         location: "",
@@ -94,70 +105,71 @@ const Admin = () => {
         organizerContact: "",
         proName: "",
         hospitalName: "",
-      })
-      fetchCamps()
-      alert("Camp added successfully!")
+      });
+      fetchCamps();
+      alert("Camp added successfully!");
     } catch (err) {
-      alert("Error adding camp.")
+      console.error(err);
+      alert("Error adding camp.");
     }
-  }
+  };
 
   // Delete donor
   const handleDeleteDonor = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this donor?")) return
+    if (!window.confirm("Are you sure you want to delete this donor?")) return;
     try {
-      const token = localStorage.getItem("admin-token")
-      await axios.delete(`https://lifelinebloodcenter.org/api/donors/${id}`, {
+      const token = localStorage.getItem("admin-token");
+      await axios.delete(`${API_BASE}/donors/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
-      })
-      alert("Donor deleted successfully!")
-      fetchDonors(token) // refresh list
+      });
+      alert("Donor deleted successfully!");
+      fetchDonors(); // refresh list
     } catch (err) {
-      alert("Error deleting donor")
+      console.error(err);
+      alert("Error deleting donor");
     }
-  }
+  };
 
   // Edit donor
   const handleEditClick = (donor) => {
-    setEditDonorId(donor._id)
-    setEditForm({ ...donor })
-  }
+    setEditDonorId(donor._id);
+    setEditForm({ ...donor });
+  };
 
   const handleEditChange = (e) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value })
-  }
+    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  };
 
   const handleEditSave = async (id) => {
     try {
-      const token = localStorage.getItem("admin-token")
-      await axios.put(`https://www.lifelinebloodcenter.org/api/donors/${id}`, editForm, {
+      const token = localStorage.getItem("admin-token");
+      await axios.put(`${API_BASE}/donors/${id}`, editForm, {
         headers: { Authorization: `Bearer ${token}` },
-      })
-      setDonors((prev) =>
-        prev.map((d) => (d._id === id ? { ...editForm } : d))
-      )
-      setEditDonorId(null)
+      });
+      setDonors((prev) => prev.map((d) => (d._id === id ? { ...editForm } : d)));
+      setEditDonorId(null);
     } catch (err) {
-      alert("Error saving donor update")
+      console.error(err);
+      alert("Error saving donor update");
     }
-  }
+  };
 
   // PDF Download
   const downloadPDF = () => {
     if (!donors.length) {
-      alert("No donors to export.")
-      return
+      alert("No donors to export.");
+      return;
     }
 
-    const doc = new jsPDF()
-    doc.setFontSize(16)
+    const doc = new jsPDF();
+    doc.setFontSize(16);
     doc.text(
       `Donor List for Camp: ${
         camps.find((c) => c._id === selectedCamp)?.name || ""
       }`,
       14,
       15
-    )
+    );
 
     const tableColumn = [
       "#",
@@ -169,7 +181,7 @@ const Admin = () => {
       "Phone",
       "Address",
       "Remark",
-    ]
+    ];
     const tableRows = donors.map((donor, index) => [
       index + 1,
       donor.name,
@@ -180,22 +192,22 @@ const Admin = () => {
       donor.phone,
       donor.address,
       donor.remark || "",
-    ])
+    ]);
 
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: 20,
-    })
+    });
 
     doc.save(
       `DonorList_${camps.find((c) => c._id === selectedCamp)?.name || ""}.pdf`
-    )
-  }
+    );
+  };
 
   return (
     <div className="container py-2">
-      {/* Sticky Navbar Header */}
+      {/* Sticky Navbar */}
       <div
         className="d-flex justify-content-between align-items-center flex-wrap px-3 py-2"
         style={{
@@ -332,9 +344,9 @@ const Admin = () => {
                   <button
                     className="btn btn-sm btn-outline-primary me-2"
                     onClick={() => {
-                      const shareLink = `${window.location.origin}/register?campId=${camp._id}`
-                      navigator.clipboard.writeText(shareLink)
-                      alert(`✅ Registration link copied:\n${shareLink}`)
+                      const shareLink = `${window.location.origin}/register?campId=${camp._id}`;
+                      navigator.clipboard.writeText(shareLink);
+                      alert(`✅ Registration link copied:\n${shareLink}`);
                     }}
                   >
                     Copy Registration Link
@@ -374,7 +386,6 @@ const Admin = () => {
             Donors for Camp: {camps.find((c) => c._id === selectedCamp)?.name || ""}
           </h4>
 
-          {/* Search box */}
           <input
             type="text"
             className="form-control mb-3"
@@ -512,25 +523,23 @@ const Admin = () => {
                           className="form-select form-select-sm"
                           value={donor.remark || ""}
                           onChange={async (e) => {
-                            const newRemark = e.target.value
+                            const newRemark = e.target.value;
                             try {
-                              const token = localStorage.getItem("admin-token")
+                              const token = localStorage.getItem("admin-token");
                               await axios.put(
-                                `https://lifelinebloodcenter.org/api/donors/${donor._id}`,
+                                `${API_BASE}/donors/${donor._id}`,
                                 { remark: newRemark },
                                 {
                                   headers: { Authorization: `Bearer ${token}` },
                                 }
-                              )
+                              );
                               setDonors((prev) =>
                                 prev.map((d) =>
-                                  d._id === donor._id
-                                    ? { ...d, remark: newRemark }
-                                    : d
+                                  d._id === donor._id ? { ...d, remark: newRemark } : d
                                 )
-                              )
+                              );
                             } catch {
-                              alert("Error updating remark")
+                              alert("Error updating remark");
                             }
                           }}
                         >
@@ -585,7 +594,7 @@ const Admin = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default Admin
+export default Admin;
