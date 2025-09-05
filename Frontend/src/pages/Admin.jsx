@@ -36,30 +36,27 @@ const Admin = () => {
     }
   }, [])
 
-  useEffect(() => {
-    const token = localStorage.getItem("admin-token")
-    if (selectedCamp && token) {
-      fetchDonors(token)
-    }
-  }, [selectedCamp])
+ useEffect(() => {
+  if (camps.length > 0 && !selectedCamp) {
+    setSelectedCamp(camps[0]._id)
+  }
+}, [camps])
+
 
   const fetchDonors = async (token) => {
-    try {
-      const res = await axios.get(
-        `https://www.lifelinebloodcenter.org/api/donors/camp/${selectedCamp}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      )
-      setDonors(res.data)
-    } catch (error) {
-      console.error("Failed to fetch donors:", error)
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        localStorage.removeItem("admin-token")
-        navigate("/admin-login")
-      }
-    }
+  try {
+    console.log("Fetching donors for camp:", selectedCamp)
+    const res = await axios.get(
+      `https://www.lifelinebloodcenter.org/api/donors/camp/${selectedCamp}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    console.log("Donors response:", res.data) // Add this line
+    setDonors(res.data)
+  } catch (error) {
+    console.error("Failed to fetch donors:", error)
   }
+}
+
 
   const fetchCamps = async () => {
     try {
