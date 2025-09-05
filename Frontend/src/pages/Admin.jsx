@@ -43,19 +43,24 @@ const Admin = () => {
 }, [camps])
 
 
-  const fetchDonors = async (token) => {
+const fetchDonors = async (token) => {
   try {
     console.log("Fetching donors for camp:", selectedCamp)
     const res = await axios.get(
       `https://www.lifelinebloodcenter.org/api/donors/camp/${selectedCamp}`,
       { headers: { Authorization: `Bearer ${token}` } }
     )
-    console.log("Donors response:", res.data) // Add this line
+    console.log("Donors response:", res.data)
     setDonors(res.data)
   } catch (error) {
     console.error("Failed to fetch donors:", error)
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      localStorage.removeItem("admin-token")
+      navigate("/admin-login")
+    }
   }
 }
+
 
 
   const fetchCamps = async () => {
