@@ -43,18 +43,7 @@ router.post('/', verifyToken, async (req, res) => {
   }
 })
 
-router.delete("/:id", authMiddleware, async (req, res) => {
-  try {
-    const camp = await Camp.findByIdAndDelete(req.params.id);
-    if (!camp) {
-      return res.status(404).json({ message: "Camp not found" });
-    }
-    res.json({ message: "Camp deleted successfully", camp });
-  } catch (error) {
-    console.error("Error deleting camp:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+
 
 // ✅ Get All Camps with donor count (and coupons included)
 router.get('/', async (req, res) => {
