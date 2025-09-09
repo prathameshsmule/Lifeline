@@ -113,7 +113,7 @@ const Admin = () => {
     if (!window.confirm("Are you sure you want to delete this donor?")) return;
     try {
       const token = localStorage.getItem("admin-token");
-      await axios.delete(`${API_BASE}/donors/${id}`, {
+      await axios.delete(`https://www.lifelinebloodcenter.org/api/donors/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchDonors();
@@ -136,7 +136,7 @@ const Admin = () => {
   const handleEditSave = async (id) => {
     try {
       const token = localStorage.getItem("admin-token");
-      await axios.put(`${API_BASE}/donors/${id}`, editForm, {
+      await axios.put(`https://www.lifelinebloodcenter.org/api/donors/${id}`, editForm, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setDonors((prev) => prev.map((d) => (d._id === id ? { ...editForm } : d)));
