@@ -31,6 +31,7 @@ const Admin = () => {
 
   const navigate = useNavigate();
 
+  // Check admin token
   useEffect(() => {
     const token = localStorage.getItem("admin-token");
     if (!token) navigate("/admin-login");
@@ -38,12 +39,10 @@ const Admin = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedCamp) {
-      setSearchTerm(""); // reset search when camp changes
-      fetchDonors();
-    }
+    if (selectedCamp) fetchDonors();
   }, [selectedCamp]);
 
+  // Fetch all camps
   const fetchCamps = async () => {
     setLoadingCamps(true);
     try {
@@ -57,14 +56,14 @@ const Admin = () => {
     }
   };
 
+  // Fetch donors for selected camp
   const fetchDonors = async () => {
     const token = localStorage.getItem("admin-token");
     if (!token) return navigate("/admin-login");
 
     setLoadingDonors(true);
     try {
-      // ✅ Corrected endpoint to fetch donors camp-wise
-      const res = await axios.get(`${API_BASE}/camps/${selectedCamp}/donors`, {
+      const res = await axios.get(`${API_BASE}/donors/camp/${selectedCamp}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setDonors(res.data || []);
@@ -85,6 +84,7 @@ const Admin = () => {
     navigate("/admin-login");
   };
 
+  // Add New Camp
   const handleNewCampChange = (e) => {
     setNewCamp({ ...newCamp, [e.target.name]: e.target.value });
   };
@@ -113,6 +113,24 @@ const Admin = () => {
     }
   };
 
+  // Delete a camp
+  const handleDeleteCamp = async (campId) => {
+    if (!window.confirm("Are you sure you want to delete this camp? This will also remove its donors.")) return;
+    try {
+      const token = localStorage.getItem("admin-token");
+      await axios.delete(`${API_BASE}/camps/${campId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      alert("Camp deleted successfully!");
+      fetchCamps();
+      if (selectedCamp === campId) setSelectedCamp(null);
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting camp");
+    }
+  };
+
+  // Donor actions
   const handleDeleteDonor = async (id) => {
     if (!window.confirm("Are you sure you want to delete this donor?")) return;
     try {
@@ -151,6 +169,7 @@ const Admin = () => {
     }
   };
 
+  // Download donor PDF
   const downloadPDF = () => {
     if (!donors.length) return alert("No donors to export.");
 
@@ -233,9 +252,10 @@ const Admin = () => {
                   navigator.clipboard.writeText(shareLink);
                   alert(`✅ Registration link copied:\n${shareLink}`);
                 }}>Copy Registration Link</button>
-                <button className="btn btn-sm btn-outline-secondary" onClick={()=>setShowQR(prev=>({...prev,[camp._id]:!prev[camp._id]}))}>
+                <button className="btn btn-sm btn-outline-secondary me-2" onClick={()=>setShowQR(prev=>({...prev,[camp._id]:!prev[camp._id]}))}>
                   {showQR[camp._id]?"Hide QR":"Show QR"}
                 </button>
+                <button className="btn btn-sm btn-danger" onClick={()=>handleDeleteCamp(camp._id)}>Delete Camp</button>
                 {showQR[camp._id] && <div className="mt-2"><QRCodeCanvas value={`${window.location.origin}/register?campId=${camp._id}`} size={128}/></div>}
               </div>
             </div>
