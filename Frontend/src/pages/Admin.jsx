@@ -89,7 +89,7 @@ const Admin = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem("admin-token");
-      await axios.post(`https://lifelinebloodcenter.org/api/camps`, newCamp, {
+      await axios.post(`https://www.lifelinebloodcenter.org/api/camps`, newCamp, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setNewCamp({
