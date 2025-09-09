@@ -27,9 +27,19 @@ router.post('/', async (req, res) => {
     if (weight < 50) return res.status(400).json({ message: 'Minimum weight must be 50kg' })
     if (!camp) return res.status(400).json({ message: 'Camp is required' })
 
-    const donor = new Donor({ name, dob, age, weight, bloodGroup, email, phone, address, camp })
-    await donor.save()
+    const donor = new Donor({
+      name,
+      dob,
+      age,
+      weight,
+      bloodGroup,
+      email,
+      phone,
+      address,
+      camp // ✅ should be campId (_id)
+    })
 
+    await donor.save()
     res.status(201).json({ message: 'Donor registered successfully', donor })
   } catch (error) {
     res.status(500).json({ message: 'Error registering donor', error: error.message })
@@ -39,18 +49,24 @@ router.post('/', async (req, res) => {
 // ✅ Get All Donors
 router.get('/', verifyToken, async (req, res) => {
   try {
-    const donors = await Donor.find().sort({ createdAt: -1 })
+    const donors = await Donor.find()
+      .populate('camp', 'name location date') // ✅ optional: show camp details
+      .sort({ createdAt: -1 })
+
     res.json(donors)
   } catch (error) {
     res.status(500).json({ message: 'Error fetching donors', error: error.message })
   }
 })
 
-// ✅ Get Donors by Camp
-router.get('/camp/:campName', verifyToken, async (req, res) => {
+// ✅ Get Donors by CampId
+router.get('/camp/:campId', verifyToken, async (req, res) => {
   try {
-    const { campName } = req.params
-    const donors = await Donor.find({ camp: campName }).sort({ createdAt: -1 })
+    const { campId } = req.params
+    const donors = await Donor.find({ camp: campId })
+      .populate('camp', 'name location date')
+      .sort({ createdAt: -1 })
+
     res.json(donors)
   } catch (error) {
     res.status(500).json({ message: 'Error fetching donors by camp', error: error.message })
@@ -67,11 +83,7 @@ router.put('/:id', verifyToken, async (req, res) => {
       updateFields.age = calculateAge(updateFields.dob)
     }
 
-    const updatedDonor = await Donor.findByIdAndUpdate(
-      id,
-      updateFields,
-      { new: true }
-    )
+    const updatedDonor = await Donor.findByIdAndUpdate(id, updateFields, { new: true })
 
     if (!updatedDonor) return res.status(404).json({ message: 'Donor not found' })
 
