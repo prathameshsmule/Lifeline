@@ -43,20 +43,6 @@ router.post('/', verifyToken, async (req, res) => {
   }
 })
 
-
-// Express example
-app.delete("/api/camps/:id", verifyAdmin, async (req, res) => {
-  try {
-    const campId = req.params.id;
-    await Camp.findByIdAndDelete(campId); // delete camp
-    await Donor.deleteMany({ campId });   // optional: delete all donors for this camp
-    res.status(200).json({ message: "Camp deleted" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to delete camp" });
-  }
-});
-
 // ✅ Get All Camps with donor count (and coupons included)
 router.get('/', async (req, res) => {
   try {
