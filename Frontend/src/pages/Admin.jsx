@@ -44,7 +44,7 @@ const Admin = () => {
   const fetchCamps = async () => {
     setLoadingCamps(true);
     try {
-      const res = await axios.get(`${API_BASE}/camps`);
+      const res = await axios.get(`https://lifelinebloodcenter.org/api/camps`);
       setCamps(res.data);
     } catch (err) {
       console.error("Failed to fetch camps:", err);
