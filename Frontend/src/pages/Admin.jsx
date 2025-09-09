@@ -38,7 +38,10 @@ const Admin = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedCamp) fetchDonors();
+    if (selectedCamp) {
+      setSearchTerm(""); // reset search when camp changes
+      fetchDonors();
+    }
   }, [selectedCamp]);
 
   const fetchCamps = async () => {
@@ -60,7 +63,8 @@ const Admin = () => {
 
     setLoadingDonors(true);
     try {
-      const res = await axios.get(`${API_BASE}/donors/camp/${selectedCamp}`, {
+      // ✅ Corrected endpoint to fetch donors camp-wise
+      const res = await axios.get(`${API_BASE}/camps/${selectedCamp}/donors`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setDonors(res.data || []);
