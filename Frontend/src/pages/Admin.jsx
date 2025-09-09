@@ -5,7 +5,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const API_BASE = "https://lifelinebloodcenter.org/api";
+const API_BASE = "https://www.lifelinebloodcenter.org/api";
 
 const Admin = () => {
   const [donors, setDonors] = useState([]);
@@ -44,7 +44,7 @@ const Admin = () => {
   const fetchCamps = async () => {
     setLoadingCamps(true);
     try {
-      const res = await axios.get(`https://lifelinebloodcenter.org/api/camps`);
+      const res = await axios.get(`https://www.lifelinebloodcenter.org/api/camps`);
       setCamps(res.data);
     } catch (err) {
       console.error("Failed to fetch camps:", err);
