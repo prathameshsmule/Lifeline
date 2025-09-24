@@ -23,6 +23,19 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
+
+// in campRoutes.js
+router.get('/', async (req, res) => {
+  try {
+    const camps = await Camp.find().sort({ date: 1 });
+    // add donor count if needed
+    res.json(camps);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching camps', error: err.message });
+  }
+});
+
+
 // ✅ Get All Camps with Donor Count (Token Protected)
 router.get('/', verifyToken, async (req, res) => {
   try {
