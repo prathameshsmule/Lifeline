@@ -6,7 +6,9 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// ✅ Add New Camp
+/* -----------------  PUBLIC ROUTES  ----------------- */
+
+// ✅ Add New Camp (admin protected)
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { name, location, date, organizerName, organizerContact, proName, hospitalName } = req.body;
@@ -23,21 +25,20 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-
-// in campRoutes.js
+// ✅ Public list of camps (used by donor registration form)
 router.get('/', async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 });
-    // add donor count if needed
     res.json(camps);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching camps', error: err.message });
   }
 });
 
+/* -----------------  ADMIN/PROTECTED ROUTES  ----------------- */
 
-// ✅ Get All Camps with Donor Count (Token Protected)
-router.get('/', verifyToken, async (req, res) => {
+// ✅ All camps with donor counts (for admin dashboard)
+router.get('/with-count', verifyToken, async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 });
 
@@ -54,11 +55,12 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-// ✅ Update Coupons for a Camp
+// ✅ Update coupons for a camp
 router.put('/:id/coupons', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid Camp ID' });
+    if (!mongoose.Types.ObjectId.isValid(id))
+      return res.status(400).json({ message: 'Invalid Camp ID' });
 
     const { coupons } = req.body;
     const camp = await Camp.findByIdAndUpdate(id, { $set: { coupons } }, { new: true });
@@ -71,11 +73,12 @@ router.put('/:id/coupons', verifyToken, async (req, res) => {
   }
 });
 
-// ✅ Get Single Camp with Donor Count
+// ✅ Get single camp with donor count
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid Camp ID' });
+    if (!mongoose.Types.ObjectId.isValid(id))
+      return res.status(400).json({ message: 'Invalid Camp ID' });
 
     const camp = await Camp.findById(id);
     if (!camp) return res.status(404).json({ message: 'Camp not found' });
