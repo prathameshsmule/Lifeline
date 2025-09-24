@@ -7,9 +7,10 @@ import '../styles/DonorRegistration.css';
 
 const DonorRegistration = () => {
   const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const campIdFromUrl = queryParams.get('campId');
+  const query = new URLSearchParams(location.search);
+  const campIdFromUrl = query.get("campId");
 
+  const [camps, setCamps] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     dob: '',
@@ -18,80 +19,65 @@ const DonorRegistration = () => {
     email: '',
     phone: '',
     address: '',
-    camp: '' // will now hold camp _id
+    camp: ''
   });
-
-  const [camps, setCamps] = useState([]);
-  const [campLocked, setCampLocked] = useState(false);
   const [calculatedAge, setCalculatedAge] = useState(null);
+  const [campLocked, setCampLocked] = useState(false);
 
   // Initialize EmailJS
   useEffect(() => {
     emailjs.init('NtoYnRvbn1y7ywGKq');
   }, []);
 
+  // Fetch camps from backend
   useEffect(() => {
-    // ⚠️ your backend GET /api/camps must be public (no verifyToken)
-    axios
-      .get('https://www.lifelinebloodcenter.org/api/camps')
-      .then((res) => {
+    axios.get('https://www.lifelinebloodcenter.org/api/camps')
+      .then(res => {
+        console.log("Camps fetched:", res.data);
         setCamps(res.data);
-
-        if (campIdFromUrl) {
-          const selectedCamp = res.data.find((c) => c._id === campIdFromUrl);
-          if (selectedCamp) {
-            setFormData((prev) => ({ ...prev, camp: selectedCamp._id }));
-            setCampLocked(true);
-          }
-        }
       })
-      .catch(() => setCamps([]));
-  }, [campIdFromUrl]);
+      .catch(err => {
+        console.error("Error fetching camps:", err);
+        setCamps([]);
+      });
+  }, []);
 
-  // ✅ Calculate age
-  const calculateAgeFromBirthDate = (birthDateValue) => {
-    if (!birthDateValue) return null;
+  // Lock camp if URL has campId
+  useEffect(() => {
+    if (campIdFromUrl && camps.length > 0) {
+      const selectedCamp = camps.find(c => c._id === campIdFromUrl);
+      if (selectedCamp) {
+        setFormData(prev => ({ ...prev, camp: selectedCamp._id }));
+        setCampLocked(true);
+      }
+    }
+  }, [campIdFromUrl, camps]);
 
-    const birthDate = new Date(birthDateValue);
+  // Calculate age
+  const calculateAge = (dobValue) => {
+    const birthDate = new Date(dobValue);
     const today = new Date();
-
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age--;
-    }
-
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
     return age;
   };
 
-  const handleBirthDateChange = (dateValue) => {
-    setFormData({ ...formData, dob: dateValue });
-    const age = calculateAgeFromBirthDate(dateValue);
-    setCalculatedAge(age);
-  };
-
+  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     if (name === 'dob') {
-      handleBirthDateChange(value);
-      return;
+      setFormData({ ...formData, dob: value });
+      setCalculatedAge(calculateAge(value));
+    } else {
+      setFormData({ ...formData, [name]: value });
     }
-
-    setFormData({ ...formData, [name]: value });
   };
 
-  // ✅ Send confirmation email
+  // Send confirmation email
   const sendEmail = async (donorData) => {
     try {
-      // find camp name for email
-      const campName =
-        camps.find((c) => c._id === donorData.camp)?.name || 'Selected Camp';
-
+      const campName = camps.find(c => c._id === donorData.camp)?.name || 'Selected Camp';
       const templateParams = {
         to_email: donorData.email,
         donor_name: donorData.name,
@@ -103,52 +89,31 @@ const DonorRegistration = () => {
         donor_camp: campName,
         registration_date: new Date().toLocaleDateString()
       };
-
-      await emailjs.send(
-        'service_tt2fcqh',
-        'template_wlnkbdh',
-        templateParams,
-        'NtoYnRvbn1y7ywGKq'
-      );
-
-      console.log('Email sent successfully!');
+      await emailjs.send('service_tt2fcqh','template_wlnkbdh', templateParams,'NtoYnRvbn1y7ywGKq');
+      console.log("Email sent successfully!");
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error("Failed to send email:", error);
     }
   };
 
+  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (calculatedAge < 18) {
-      alert('You must be at least 18 years old to register as a donor.');
-      return;
-    }
-
-    if (parseInt(formData.weight) < 50) {
-      alert('Minimum weight for donation should be 50 kg.');
-      return;
-    }
+    if (calculatedAge < 18) { alert("Minimum age 18"); return; }
+    if (parseInt(formData.weight) < 50) { alert("Minimum weight 50kg"); return; }
 
     try {
-      // camp now is ID, backend donorSchema expects ObjectId
       await axios.post('https://www.lifelinebloodcenter.org/api/donors', formData);
       await sendEmail(formData);
-
-      alert('🎉 Registration successful! Check your email for confirmation.');
+      alert("🎉 Registration successful! Check your email for confirmation.");
       setFormData({
-        name: '',
-        dob: '',
-        weight: '',
-        bloodGroup: '',
-        email: '',
-        phone: '',
-        address: '',
-        camp: campLocked ? formData.camp : '' // keep locked camp id if locked
+        name: '', dob: '', weight: '', bloodGroup: '', email: '', phone: '', address: '',
+        camp: campLocked ? formData.camp : ''
       });
       setCalculatedAge(null);
     } catch (err) {
-      alert('❌ Error submitting form. Please try again.');
+      console.error(err);
+      alert("❌ Error submitting form.");
     }
   };
 
@@ -165,121 +130,30 @@ const DonorRegistration = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="registration-form">
-          <div className="form-group">
-            <input
-              className="form-input"
-              name="name"
-              placeholder="Full Name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          <input className="form-input" name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} required />
 
-          <div className="form-group">
-            <label className="form-label">Date of Birth</label>
-            <input
-              className="form-input"
-              name="dob"
-              type="date"
-              value={formData.dob}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          <label>Date of Birth</label>
+          <input className="form-input" type="date" name="dob" value={formData.dob} onChange={handleChange} required />
+          {calculatedAge !== null && <p className="age-preview">Age: {calculatedAge} years</p>}
 
-          {calculatedAge !== null && (
-            <p className="age-preview">Calculated Age: {calculatedAge} years</p>
-          )}
+          <input className="form-input" name="weight" type="number" placeholder="Weight (kg)" value={formData.weight} onChange={handleChange} required />
 
-          <div className="form-group">
-            <input
-              className="form-input"
-              name="weight"
-              type="number"
-              placeholder="Weight (kg)"
-              value={formData.weight}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          <select className="form-select" name="bloodGroup" value={formData.bloodGroup} onChange={handleChange} required>
+            <option value="">Select Blood Group</option>
+            {['A+','A-','B+','B-','AB+','AB-','O+','O-', "Don't Know"].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+          </select>
 
-          <div className="form-group">
-            <select
-              className="form-select"
-              name="bloodGroup"
-              value={formData.bloodGroup}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select Blood Group</option>
-              {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', "Don't Know"].map(
-                (bg) => (
-                  <option key={bg} value={bg}>
-                    {bg}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
+          <input className="form-input" name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
+          <input className="form-input" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} required />
+          <textarea className="form-textarea" name="address" placeholder="Address" value={formData.address} onChange={handleChange} rows="3" required />
 
-          <div className="form-group">
-            <input
-              className="form-input"
-              name="email"
-              type="email"
-              placeholder="Email Address"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          {/* Camp Select */}
+          <select className="form-select" name="camp" value={formData.camp} onChange={handleChange} required disabled={campLocked}>
+            <option value="">Select Camp</option>
+            {camps.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+          </select>
 
-          <div className="form-group">
-            <input
-              className="form-input"
-              name="phone"
-              placeholder="Phone Number"
-              value={formData.phone}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <textarea
-              className="form-textarea"
-              name="address"
-              placeholder="Address"
-              value={formData.address}
-              onChange={handleChange}
-              required
-              rows="3"
-            />
-          </div>
-
-          <div className="form-group">
-            <select
-              className="form-select"
-              name="camp"
-              value={formData.camp}
-              onChange={handleChange}
-              required
-              disabled={campLocked}
-            >
-              <option value="">Select Camp</option>
-              {camps.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button className="submit-btn" type="submit">
-            <span className="btn-text">Register as Donor</span>
-            <div className="btn-ripple"></div>
-          </button>
+          <button type="submit" className="submit-btn">Register as Donor</button>
         </form>
       </div>
     </div>
