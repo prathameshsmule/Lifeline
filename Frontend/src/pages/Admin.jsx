@@ -15,55 +15,37 @@ const Admin = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loadingDonors, setLoadingDonors] = useState(false);
   const [loadingCamps, setLoadingCamps] = useState(false);
-
   const [editDonorId, setEditDonorId] = useState(null);
   const [editForm, setEditForm] = useState({});
-
   const [newCamp, setNewCamp] = useState({
-    name: "",
-    location: "",
-    date: "",
-    organizerName: "",
-    organizerContact: "",
-    proName: "",
-    hospitalName: "",
+    name: "", location: "", date: "", organizerName: "", organizerContact: "", proName: "", hospitalName: ""
   });
 
   const navigate = useNavigate();
 
-  // ✅ Check admin login
   useEffect(() => {
     const token = localStorage.getItem("admin-token");
     if (!token) navigate("/admin-login");
     else fetchCamps();
   }, []);
 
-  // ✅ Fetch donors when camp is selected
   useEffect(() => {
     if (selectedCamp) fetchDonors();
   }, [selectedCamp]);
 
-  // ✅ Fetch camps from backend and add donorCount
   const fetchCamps = async () => {
     setLoadingCamps(true);
     try {
       const res = await axios.get(`${API_BASE}/camps`);
-      const campsWithCount = await Promise.all(
-        res.data.map(async (camp) => {
-          const donorRes = await axios.get(`${API_BASE}/donors/camp/${camp._id}`);
-          return { ...camp, donorCount: donorRes.data.length };
-        })
-      );
-      setCamps(campsWithCount);
+      setCamps(res.data);
     } catch (err) {
-      console.error("Failed to fetch camps:", err);
+      console.error(err);
       setCamps([]);
     } finally {
       setLoadingCamps(false);
     }
   };
 
-  // ✅ Fetch donors for selected camp
   const fetchDonors = async () => {
     const token = localStorage.getItem("admin-token");
     if (!token) return navigate("/admin-login");
@@ -75,7 +57,7 @@ const Admin = () => {
       });
       setDonors(res.data || []);
     } catch (err) {
-      console.error("Failed to fetch donors:", err.response || err);
+      console.error(err);
       setDonors([]);
       if ([401, 403].includes(err.response?.status)) {
         localStorage.removeItem("admin-token");
@@ -103,13 +85,7 @@ const Admin = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setNewCamp({
-        name: "",
-        location: "",
-        date: "",
-        organizerName: "",
-        organizerContact: "",
-        proName: "",
-        hospitalName: "",
+        name: "", location: "", date: "", organizerName: "", organizerContact: "", proName: "", hospitalName: ""
       });
       fetchCamps();
       alert("Camp added successfully!");
@@ -127,7 +103,6 @@ const Admin = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchDonors();
-      fetchCamps(); // Update donor count
       alert("Donor deleted successfully!");
     } catch (err) {
       console.error(err);
@@ -168,11 +143,17 @@ const Admin = () => {
     const campName = camps.find((c) => c._id === selectedCamp)?.name || "All Camps";
     doc.text(`Donor List for Camp: ${campName}`, 14, 15);
 
-    const tableColumn = [
-      "#", "Name", "Blood Group", "Age", "Weight (kg)", "Email", "Phone", "Address", "Remark"
-    ];
+    const tableColumn = ["#", "Name", "Blood Group", "Age", "Weight (kg)", "Email", "Phone", "Address", "Remark"];
     const tableRows = donors.map((donor, index) => [
-      index + 1, donor.name, donor.bloodGroup, donor.age, donor.weight, donor.email, donor.phone, donor.address, donor.remark || ""
+      index + 1,
+      donor.name,
+      donor.bloodGroup,
+      donor.age,
+      donor.weight,
+      donor.email,
+      donor.phone,
+      donor.address,
+      donor.remark || ""
     ]);
 
     autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20 });
