@@ -4,6 +4,7 @@ import { verifyToken } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
+// Helper: calculate age
 const calculateAge = (dob) => {
   const birthDate = new Date(dob)
   const today = new Date()
@@ -13,7 +14,7 @@ const calculateAge = (dob) => {
   return age
 }
 
-// Register donor
+// Register Donor
 router.post('/', async (req, res) => {
   try {
     const { name, dob, weight, bloodGroup, email, phone, address, camp } = req.body
@@ -23,18 +24,7 @@ router.post('/', async (req, res) => {
     if (weight < 50) return res.status(400).json({ message: 'Minimum weight must be 50kg' })
     if (!camp) return res.status(400).json({ message: 'Camp is required' })
 
-    const donor = new Donor({
-      name,
-      dob,
-      age,
-      weight,
-      bloodGroup,
-      email,
-      phone,
-      address,
-      camp // ✅ store camp._id
-    })
-
+    const donor = new Donor({ name, dob, age, weight, bloodGroup, email, phone, address, camp })
     await donor.save()
     res.status(201).json({ message: 'Donor registered successfully', donor })
   } catch (err) {
@@ -42,7 +32,7 @@ router.post('/', async (req, res) => {
   }
 })
 
-// Get all donors (admin)
+// Get all donors (for admin)
 router.get('/', verifyToken, async (req, res) => {
   try {
     const donors = await Donor.find()
@@ -54,11 +44,11 @@ router.get('/', verifyToken, async (req, res) => {
   }
 })
 
-// Get donors by campId (admin)
+// Get donors by camp ID (for admin)
 router.get('/camp/:campId', verifyToken, async (req, res) => {
   try {
     const { campId } = req.params
-    const donors = await Donor.find({ camp: campId })
+    const donors = await Donor.find({ camp: campId }) // ✅ match by _id
       .populate('camp', 'name location date')
       .sort({ createdAt: -1 })
     res.json(donors)
