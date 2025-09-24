@@ -24,12 +24,9 @@ const Admin = () => {
 
   const navigate = useNavigate();
 
-  // ... rest of your Admin component code
-
-  const navigate = useNavigate();
+  const token = localStorage.getItem("admin-token");
 
   useEffect(() => {
-    const token = localStorage.getItem("admin-token");
     if (!token) navigate("/admin-login");
     else fetchCamps();
   }, []);
@@ -52,9 +49,7 @@ const Admin = () => {
   };
 
   const fetchDonors = async () => {
-    const token = localStorage.getItem("admin-token");
     if (!token) return navigate("/admin-login");
-
     setLoadingDonors(true);
     try {
       const res = await axios.get(`${API_BASE}/donors/camp/${selectedCamp}`, {
@@ -85,7 +80,6 @@ const Admin = () => {
   const handleNewCampSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem("admin-token");
       await axios.post(`${API_BASE}/camps`, newCamp, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -103,7 +97,6 @@ const Admin = () => {
   const handleDeleteDonor = async (id) => {
     if (!window.confirm("Are you sure you want to delete this donor?")) return;
     try {
-      const token = localStorage.getItem("admin-token");
       await axios.delete(`${API_BASE}/donors/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -126,7 +119,6 @@ const Admin = () => {
 
   const handleEditSave = async (id) => {
     try {
-      const token = localStorage.getItem("admin-token");
       await axios.put(`${API_BASE}/donors/${id}`, editForm, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -230,17 +222,36 @@ const Admin = () => {
                     navigator.clipboard.writeText(link);
                     alert(`✅ Registration link copied:\n${link}`);
                   }}>Copy Registration Link</button>
-                  <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowQR(prev => ({ ...prev, [camp._id]: !prev[camp._id] }))}>
+                  <button className="btn btn-sm btn-outline-secondary me-2" onClick={() => setShowQR(prev => ({ ...prev, [camp._id]: !prev[camp._id] }))}>
                     {showQR[camp._id] ? "Hide QR" : "Show QR"}
                   </button>
                   {showQR[camp._id] && <div className="mt-2"><QRCodeCanvas value={`${window.location.origin}/register?campId=${camp._id}`} size={128}/></div>}
+
+                  {/* Delete Camp Button */}
+                  <button
+                    className="btn btn-sm btn-danger mt-2"
+                    onClick={async () => {
+                      const confirmed = window.confirm("⚠️ This will delete the camp AND all its donors. Are you sure?");
+                      if (!confirmed) return;
+                      try {
+                        await axios.delete(`${API_BASE}/camps/${camp._id}`, { headers: { Authorization: `Bearer ${token}` } });
+                        alert("Camp and all its donors deleted successfully!");
+                        fetchCamps();
+                        if (selectedCamp === camp._id) setSelectedCamp(null);
+                      } catch (err) {
+                        console.error(err);
+                        alert(err.response?.data?.message || "Error deleting camp");
+                      }
+                    }}
+                  >
+                    Delete Camp
+                  </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
       }
-
       {/* Donor Table */}
       {selectedCamp && (
         <div className="mt-5">
