@@ -4,7 +4,9 @@ import axios from 'axios';
 import emailjs from '@emailjs/browser';
 import logo from '../assets/images/blood donor.png';
 import '../styles/DonorRegistration.css';
+
 const API_BASE = "https://www.lifelinebloodcenter.org/api";
+
 const DonorRegistration = () => {
   const location = useLocation();
   const query = new URLSearchParams(location.search);
@@ -24,20 +26,17 @@ const DonorRegistration = () => {
   const [calculatedAge, setCalculatedAge] = useState(null);
   const [campLocked, setCampLocked] = useState(false);
 
-  // Initialize EmailJS
   useEffect(() => {
     emailjs.init('NtoYnRvbn1y7ywGKq');
   }, []);
 
-  // Fetch camps from backend
   useEffect(() => {
     const fetchCamps = async () => {
       try {
-        const res = await axios.get('https://www.lifelinebloodcenter.org/api/camps');
+        const res = await axios.get(`${API_BASE}/camps`);
         console.log("Camps fetched:", res.data); // Debug
         setCamps(res.data);
 
-        // Lock camp if URL param exists
         if (campIdFromUrl) {
           const selectedCamp = res.data.find(c => c._id === campIdFromUrl);
           if (selectedCamp) {
@@ -47,13 +46,11 @@ const DonorRegistration = () => {
         }
       } catch (err) {
         console.error("Error fetching camps:", err);
-        setCamps([]);
       }
     };
     fetchCamps();
-  }, [campIdFromUrl]); // Depend on campIdFromUrl
+  }, [campIdFromUrl]);
 
-  // Calculate age
   const calculateAge = (dobValue) => {
     const birthDate = new Date(dobValue);
     const today = new Date();
@@ -100,7 +97,7 @@ const DonorRegistration = () => {
     if (parseInt(formData.weight) < 50) { alert("Minimum weight 50kg"); return; }
 
     try {
-      await axios.post('https://www.lifelinebloodcenter.org/api/donors', formData);
+      await axios.post(`${API_BASE}/donors`, formData);
       await sendEmail(formData);
       alert("🎉 Registration successful! Check your email for confirmation.");
       setFormData({
@@ -147,7 +144,8 @@ const DonorRegistration = () => {
           {/* Camp Select */}
           <select className="form-select" name="camp" value={formData.camp} onChange={handleChange} required disabled={campLocked}>
             <option value="">Select Camp</option>
-            {camps.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+            {camps.length > 0 ? camps.map(c => <option key={c._id} value={c._id}>{c.name}</option>) 
+            : <option value="" disabled>Loading camps...</option>}
           </select>
 
           <button type="submit" className="submit-btn">Register as Donor</button>
