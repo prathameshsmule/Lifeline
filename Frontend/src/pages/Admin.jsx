@@ -5,7 +5,8 @@ import { QRCodeCanvas } from "qrcode.react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const API_BASE = "https://www.lifelinebloodcenter.org/api";
+// Direct live domain
+const API_BASE = "https://lifelinebloodcenter.org/api";
 
 const Admin = () => {
   const [donors, setDonors] = useState([]);
@@ -20,6 +21,10 @@ const Admin = () => {
   const [newCamp, setNewCamp] = useState({
     name: "", location: "", date: "", organizerName: "", organizerContact: "", proName: "", hospitalName: ""
   });
+
+  const navigate = useNavigate();
+
+  // ... rest of your Admin component code
 
   const navigate = useNavigate();
 
