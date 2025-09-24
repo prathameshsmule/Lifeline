@@ -6,9 +6,7 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-/* -----------------  PUBLIC ROUTES  ----------------- */
-
-// ✅ Add New Camp (admin protected)
+// Add New Camp (admin)
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { name, location, date, organizerName, organizerContact, proName, hospitalName } = req.body;
@@ -25,7 +23,7 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// ✅ Public list of camps (used by donor registration form)
+// Public list of camps
 router.get('/', async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 });
@@ -35,56 +33,27 @@ router.get('/', async (req, res) => {
   }
 });
 
-/* -----------------  ADMIN/PROTECTED ROUTES  ----------------- */
-
-// ✅ All camps with donor counts (for admin dashboard)
+// Admin: All camps with donor counts
 router.get('/with-count', verifyToken, async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 });
-
     const campsWithCounts = await Promise.all(
       camps.map(async (camp) => {
-        const count = await Donor.countDocuments({ camp: camp._id });
-        return { ...camp.toObject(), donorCount: count };
+        const donorCount = await Donor.countDocuments({ camp: camp._id });
+        return { ...camp.toObject(), donorCount };
       })
     );
-
     res.json(campsWithCounts);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching camps', error: err.message });
   }
 });
 
-// ✅ Update coupons for a camp
-router.put('/:id/coupons', verifyToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id))
-      return res.status(400).json({ message: 'Invalid Camp ID' });
-
-    const { coupons } = req.body;
-    const camp = await Camp.findByIdAndUpdate(id, { $set: { coupons } }, { new: true });
-
-    if (!camp) return res.status(404).json({ message: 'Camp not found' });
-
-    res.json({ message: 'Coupons updated successfully', camp });
-  } catch (err) {
-    res.status(500).json({ message: 'Error updating coupons', error: err.message });
-  }
-});
-
-
-router.get('/', async (req, res) => {
-  const camps = await Camp.find().sort({ date: 1 });
-  res.json(camps);
-});
-
-// ✅ Get single camp with donor count
+// Get single camp with donor count
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id))
-      return res.status(400).json({ message: 'Invalid Camp ID' });
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid Camp ID' });
 
     const camp = await Camp.findById(id);
     if (!camp) return res.status(404).json({ message: 'Camp not found' });
