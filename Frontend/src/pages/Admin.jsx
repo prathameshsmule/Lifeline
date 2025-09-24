@@ -22,7 +22,11 @@ const Admin = () => {
     name: "", location: "", date: "", organizerName: "", organizerContact: "", proName: "", hospitalName: ""
   });
 
-  const navigate = useNavigate(); // ✅ only one declaration
+  const navigate = useNavigate();
+
+  // ... rest of your Admin component code
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("admin-token");
@@ -95,25 +99,6 @@ const Admin = () => {
       alert("Error adding camp.");
     }
   };
-
-  // ------------------ DELETE CAMP ------------------
-  const handleDeleteCamp = async (campId) => {
-    const confirm = window.confirm("Do you want to delete this camp and all its donors?");
-    if (!confirm) return;
-    try {
-      const token = localStorage.getItem("admin-token");
-      await axios.delete(`${API_BASE}/camps/${campId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (selectedCamp === campId) setSelectedCamp(null);
-      fetchCamps();
-      alert("Camp and its donors deleted successfully!");
-    } catch (err) {
-      console.error(err);
-      alert("Error deleting camp.");
-    }
-  };
-  // ---------------------------------------------------
 
   const handleDeleteDonor = async (id) => {
     if (!window.confirm("Are you sure you want to delete this donor?")) return;
@@ -245,10 +230,9 @@ const Admin = () => {
                     navigator.clipboard.writeText(link);
                     alert(`✅ Registration link copied:\n${link}`);
                   }}>Copy Registration Link</button>
-                  <button className="btn btn-sm btn-outline-secondary me-2" onClick={() => setShowQR(prev => ({ ...prev, [camp._id]: !prev[camp._id] }))}>
+                  <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowQR(prev => ({ ...prev, [camp._id]: !prev[camp._id] }))}>
                     {showQR[camp._id] ? "Hide QR" : "Show QR"}
                   </button>
-                  <button className="btn btn-sm btn-danger" onClick={() => handleDeleteCamp(camp._id)}>Delete Camp</button>
                   {showQR[camp._id] && <div className="mt-2"><QRCodeCanvas value={`${window.location.origin}/register?campId=${camp._id}`} size={128}/></div>}
                 </div>
               </div>
