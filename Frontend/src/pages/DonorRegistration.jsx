@@ -92,7 +92,7 @@ const DonorRegistration = () => {
     e.preventDefault()
 
     if (calculatedAge < 18) { alert('You must be at least 18 years old.'); return }
-    if (parseInt(formData.weight) < 50) { alert('Minimum weight is 50 kg.'); return }
+    if (parseInt(formData.weight, 10) < 50) { alert('Minimum weight is 50 kg.'); return }
 
     try {
       const donorData = { ...formData, age: calculatedAge } // ✅ include age
