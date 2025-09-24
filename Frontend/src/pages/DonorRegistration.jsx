@@ -13,6 +13,7 @@ const DonorRegistration = () => {
   const campIdFromUrl = query.get("campId");
 
   const [camps, setCamps] = useState([]);
+  const [loadingCamps, setLoadingCamps] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
     dob: '',
@@ -26,15 +27,17 @@ const DonorRegistration = () => {
   const [calculatedAge, setCalculatedAge] = useState(null);
   const [campLocked, setCampLocked] = useState(false);
 
+  // Initialize EmailJS
   useEffect(() => {
     emailjs.init('NtoYnRvbn1y7ywGKq');
   }, []);
 
+  // Fetch camps from backend
   useEffect(() => {
     const fetchCamps = async () => {
+      setLoadingCamps(true);
       try {
         const res = await axios.get(`${API_BASE}/camps`);
-        console.log("Camps fetched:", res.data); // Debug
         setCamps(res.data);
 
         if (campIdFromUrl) {
@@ -46,6 +49,9 @@ const DonorRegistration = () => {
         }
       } catch (err) {
         console.error("Error fetching camps:", err);
+        setCamps([]);
+      } finally {
+        setLoadingCamps(false);
       }
     };
     fetchCamps();
@@ -142,10 +148,21 @@ const DonorRegistration = () => {
           <textarea className="form-textarea" name="address" placeholder="Address" value={formData.address} onChange={handleChange} rows="3" required />
 
           {/* Camp Select */}
-          <select className="form-select" name="camp" value={formData.camp} onChange={handleChange} required disabled={campLocked}>
-            <option value="">Select Camp</option>
-            {camps.length > 0 ? camps.map(c => <option key={c._id} value={c._id}>{c.name}</option>) 
-            : <option value="" disabled>Loading camps...</option>}
+          <select 
+            className="form-select" 
+            name="camp" 
+            value={formData.camp} 
+            onChange={handleChange} 
+            required 
+            disabled={campLocked || loadingCamps}
+          >
+            {loadingCamps ? 
+              <option value="" disabled>Loading camps...</option> :
+              <>
+                <option value="">Select Camp</option>
+                {camps.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+              </>
+            }
           </select>
 
           <button type="submit" className="submit-btn">Register as Donor</button>
