@@ -13,11 +13,17 @@ const DonorRegistration = () => {
     email: '', phone: '', address: '', camp: campIdFromUrl || ''
   })
 
-  // Fetch camps
+  // Fetch camps (public)
   useEffect(() => {
-    axios.get('https://www.lifelinebloodcenter.org/api/camps')
-      .then(res => setCamps(res.data))
-      .catch(() => setCamps([]))
+    axios.get('https://lifelinebloodcenter.org/api/camps/public')
+      .then(res => {
+        console.log('Camps:', res.data)
+        setCamps(res.data)
+      })
+      .catch(err => {
+        console.error('Error fetching camps', err)
+        setCamps([])
+      })
   }, [])
 
   const handleChange = (e) => {
@@ -32,7 +38,7 @@ const DonorRegistration = () => {
     if (parseInt(formData.weight, 10) < 50) { alert('Minimum weight is 50 kg'); return }
 
     try {
-      await axios.post('https://www.lifelinebloodcenter.org/api/donors', formData)
+      await axios.post('https://lifelinebloodcenter.org/api/donors', formData)
       alert('Donor registered successfully!')
       setFormData({ name: '', age: '', weight: '', bloodGroup: '', email: '', phone: '', address: '', camp: campIdFromUrl || '' })
     } catch (err) {
@@ -43,7 +49,9 @@ const DonorRegistration = () => {
 
   return (
     <div className="container py-4">
-      <h3 className="text-danger mb-3">Donor Registration {campIdFromUrl && `for selected Camp`}</h3>
+      <h3 className="text-danger mb-3">
+        Donor Registration {campIdFromUrl && `for selected Camp`}
+      </h3>
       <form onSubmit={handleSubmit} className="border p-3 rounded bg-light">
         <input className="form-control mb-2" name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} required />
         <input className="form-control mb-2" name="age" type="number" placeholder="Age" value={formData.age} onChange={handleChange} required />
@@ -62,7 +70,7 @@ const DonorRegistration = () => {
         {!campIdFromUrl && (
           <select className="form-select mb-2" name="camp" value={formData.camp} onChange={handleChange} required>
             <option value="">Select Camp</option>
-            {camps.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+            {camps.map(c => <option key={c._id} value={c._id}>{c.name} ({c.location})</option>)}
           </select>
         )}
 
