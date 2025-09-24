@@ -139,7 +139,10 @@ const Admin = () => {
       await axios.put(`${API_BASE}/donors/${id}`, editForm, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setDonors((prev) => prev.map((d) => (d._id === id ? { ...editForm } : d)));
+     setDonors((prev) =>
+  prev.map((d) => (d._id === id ? { ...d, ...editForm } : d))
+);
+
       setEditDonorId(null);
     } catch (err) {
       console.error(err);
