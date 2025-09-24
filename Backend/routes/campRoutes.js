@@ -73,6 +73,12 @@ router.put('/:id/coupons', verifyToken, async (req, res) => {
   }
 });
 
+
+router.get('/', async (req, res) => {
+  const camps = await Camp.find().sort({ date: 1 });
+  res.json(camps);
+});
+
 // ✅ Get single camp with donor count
 router.get('/:id', verifyToken, async (req, res) => {
   try {
