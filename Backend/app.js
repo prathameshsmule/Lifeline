@@ -27,19 +27,16 @@ app.use(express.json())
 connectDB().then(() => initializeAdmin())
 
 // Root test route
-app.get("/", (req, res) => {
-  res.send("✅ Blood Donation Backend is running!")
-})
+app.get("/", (req, res) => res.send("✅ Blood Donation Backend is running!"))
 
 // Health-check
-app.get('/api', (req, res) => {
-  res.json({ message: 'API is working 🚀' })
-})
+app.get('/api', (req, res) => res.json({ message: 'API is working 🚀' }))
 
 // Feature routes
 app.use('/api/donors', donorRoutes)
-app.use('/api/admin', adminRoutes)   // ✅ updated to /api/admin
+app.use('/api/admin', adminRoutes)
 app.use('/api/camps', campRoutes)
 
+// Start server
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
