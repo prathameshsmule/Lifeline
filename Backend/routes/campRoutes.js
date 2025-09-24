@@ -26,15 +26,12 @@ router.post('/', verifyToken, async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 })
-
-    // Count donors per camp using _id
     const campsWithCounts = await Promise.all(
       camps.map(async (camp) => {
         const count = await Donor.countDocuments({ camp: camp._id })
         return { ...camp._doc, donorCount: count }
       })
     )
-
     res.json(campsWithCounts)
   } catch (err) {
     res.status(500).json({ message: 'Error fetching camps', error: err.message })
