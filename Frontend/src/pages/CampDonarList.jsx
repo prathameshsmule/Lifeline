@@ -10,15 +10,33 @@ const CampDonorList = () => {
   const [camps, setCamps] = useState([])
   const [formData, setFormData] = useState({
     name: '', age: '', weight: '', bloodGroup: '',
-    email: '', phone: '', address: '', camp: campIdFromUrl || ''
+    email: '', phone: '', address: '', camp: ''
   })
+
+  const [campLocked, setCampLocked] = useState(false)
 
   // Fetch camps from backend
   useEffect(() => {
-    axios.get('https://www.lifelinebloodcenter.org/api/camps')
-      .then(res => setCamps(res.data))
-      .catch(() => setCamps([]))
-  }, [])
+    const fetchCamps = async () => {
+      try {
+        const res = await axios.get('https://www.lifelinebloodcenter.org/api/camps')
+        setCamps(res.data)
+
+        // If URL has campId, lock the camp
+        if (campIdFromUrl) {
+          const selectedCamp = res.data.find(c => c._id === campIdFromUrl)
+          if (selectedCamp) {
+            setFormData(prev => ({ ...prev, camp: selectedCamp._id }))
+            setCampLocked(true)
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching camps:", err)
+        setCamps([])
+      }
+    }
+    fetchCamps()
+  }, [campIdFromUrl])
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -38,7 +56,7 @@ const CampDonorList = () => {
       // Reset form
       setFormData({
         name: '', age: '', weight: '', bloodGroup: '',
-        email: '', phone: '', address: '', camp: campIdFromUrl || ''
+        email: '', phone: '', address: '', camp: campLocked ? formData.camp : ''
       })
     } catch (err) {
       console.error(err)
@@ -66,13 +84,18 @@ const CampDonorList = () => {
         <input className="form-control mb-2" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} required />
         <textarea className="form-control mb-2" name="address" placeholder="Address" value={formData.address} onChange={handleChange} rows="3" required />
 
-        {/* Camp select only if no campId from URL */}
-        {!campIdFromUrl && (
-          <select className="form-select mb-2" name="camp" value={formData.camp} onChange={handleChange} required>
-            <option value="">Select Camp</option>
-            {camps.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-          </select>
-        )}
+        {/* Camp select */}
+        <select 
+          className="form-select mb-2" 
+          name="camp" 
+          value={formData.camp} 
+          onChange={handleChange} 
+          required 
+          disabled={campLocked}
+        >
+          <option value="">Select Camp</option>
+          {camps.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+        </select>
 
         <button type="submit" className="btn btn-danger">Register</button>
       </form>
