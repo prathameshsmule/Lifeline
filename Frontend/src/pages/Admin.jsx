@@ -31,21 +31,30 @@ const Admin = () => {
 
   const navigate = useNavigate();
 
+  // ✅ Check admin login
   useEffect(() => {
     const token = localStorage.getItem("admin-token");
     if (!token) navigate("/admin-login");
     else fetchCamps();
   }, []);
 
+  // ✅ Fetch donors when camp is selected
   useEffect(() => {
     if (selectedCamp) fetchDonors();
   }, [selectedCamp]);
 
+  // ✅ Fetch camps from backend and add donorCount
   const fetchCamps = async () => {
     setLoadingCamps(true);
     try {
       const res = await axios.get(`${API_BASE}/camps`);
-      setCamps(res.data);
+      const campsWithCount = await Promise.all(
+        res.data.map(async (camp) => {
+          const donorRes = await axios.get(`${API_BASE}/donors/camp/${camp._id}`);
+          return { ...camp, donorCount: donorRes.data.length };
+        })
+      );
+      setCamps(campsWithCount);
     } catch (err) {
       console.error("Failed to fetch camps:", err);
       setCamps([]);
@@ -54,6 +63,7 @@ const Admin = () => {
     }
   };
 
+  // ✅ Fetch donors for selected camp
   const fetchDonors = async () => {
     const token = localStorage.getItem("admin-token");
     if (!token) return navigate("/admin-login");
@@ -117,6 +127,7 @@ const Admin = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchDonors();
+      fetchCamps(); // Update donor count
       alert("Donor deleted successfully!");
     } catch (err) {
       console.error(err);
@@ -139,10 +150,9 @@ const Admin = () => {
       await axios.put(`${API_BASE}/donors/${id}`, editForm, {
         headers: { Authorization: `Bearer ${token}` },
       });
-     setDonors((prev) =>
-  prev.map((d) => (d._id === id ? { ...d, ...editForm } : d))
-);
-
+      setDonors((prev) =>
+        prev.map((d) => (d._id === id ? { ...d, ...editForm } : d))
+      );
       setEditDonorId(null);
     } catch (err) {
       console.error(err);
