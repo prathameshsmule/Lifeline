@@ -9,7 +9,6 @@ const router = express.Router()
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { name, location, date, organizerName, organizerContact, proName, hospitalName } = req.body
-
     if (!name) return res.status(400).json({ message: 'Camp name is required' })
 
     const existing = await Camp.findOne({ name })
@@ -17,7 +16,6 @@ router.post('/', verifyToken, async (req, res) => {
 
     const camp = new Camp({ name, location, date, organizerName, organizerContact, proName, hospitalName })
     await camp.save()
-
     res.status(201).json({ message: 'Camp added successfully', camp })
   } catch (err) {
     res.status(500).json({ message: 'Error adding camp', error: err.message })
@@ -29,43 +27,25 @@ router.get('/', async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 })
 
-    // Aggregate donor counts per camp using camp _id
-    const donorCounts = await Donor.aggregate([
-      {
-        $group: {
-          _id: '$camp', // camp is stored as ObjectId
-          count: { $sum: 1 }
-        }
-      }
-    ])
-
-    // Map _id -> count
-    const countMap = {}
-    donorCounts.forEach(item => {
-      countMap[item._id.toString()] = item.count
-    })
-
-    // Add donorCount to each camp object
-    const campsWithCounts = camps.map(camp => ({
-      ...camp._doc,
-      donorCount: countMap[camp._id.toString()] || 0
-    }))
+    // Count donors per camp using _id
+    const campsWithCounts = await Promise.all(
+      camps.map(async (camp) => {
+        const count = await Donor.countDocuments({ camp: camp._id })
+        return { ...camp._doc, donorCount: count }
+      })
+    )
 
     res.json(campsWithCounts)
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching camps with donor count', error: err.message })
+    res.status(500).json({ message: 'Error fetching camps', error: err.message })
   }
 })
 
-// Add / Update Coupons for a Camp
+// Update coupons for a camp
 router.put('/:id/coupons', verifyToken, async (req, res) => {
   try {
     const { coupons } = req.body
-    const camp = await Camp.findByIdAndUpdate(
-      req.params.id,
-      { $set: { coupons } },
-      { new: true }
-    )
+    const camp = await Camp.findByIdAndUpdate(req.params.id, { $set: { coupons } }, { new: true })
     if (!camp) return res.status(404).json({ message: 'Camp not found' })
     res.json({ message: 'Coupons updated successfully', camp })
   } catch (err) {
