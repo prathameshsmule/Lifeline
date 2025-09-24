@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import axios from 'axios'
 
-const DonorRegistration = () => {
+const CampDonorList = () => {
   const location = useLocation()
   const query = new URLSearchParams(location.search)
   const campIdFromUrl = query.get("campId") // Get campId from URL
@@ -80,4 +80,4 @@ const DonorRegistration = () => {
   )
 }
 
-export default DonorRegistration
+export default CampDonorList
