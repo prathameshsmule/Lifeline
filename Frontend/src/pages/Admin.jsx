@@ -28,33 +28,32 @@ const Admin = () => {
   });
 
   const navigate = useNavigate();
+
   const token = localStorage.getItem("admin-token");
 
-  // ✅ Redirect if no token
+  // ✅ Check admin token on mount
   useEffect(() => {
-    if (!token) navigate("/admin-login");
-    else fetchCamps();
+    if (!token) return navigate("/admin-login");
+    fetchCamps();
   }, []);
 
-  // ✅ Auto-select first camp after fetching
-  useEffect(() => {
-    if (camps.length > 0 && !selectedCamp) setSelectedCamp(camps[0]._id);
-  }, [camps]);
-
-  // ✅ Fetch donors when selectedCamp changes
+  // ✅ Fetch donors when a camp is selected
   useEffect(() => {
     if (selectedCamp) fetchDonors();
   }, [selectedCamp]);
 
-  // Fetch camps
+  // Fetch all camps
   const fetchCamps = async () => {
     setLoadingCamps(true);
     try {
-      const res = await axios.get(`${API_BASE}/camps`);
+      const res = await axios.get(`${API_BASE}/camps`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setCamps(res.data);
     } catch (err) {
-      console.error("Failed to fetch camps:", err);
+      console.error("Failed to fetch camps:", err.response || err);
       setCamps([]);
+      if ([401, 403].includes(err.response?.status)) handleLogout();
     } finally {
       setLoadingCamps(false);
     }
@@ -62,7 +61,6 @@ const Admin = () => {
 
   // Fetch donors for selected camp
   const fetchDonors = async () => {
-    if (!token) return navigate("/admin-login");
     setLoadingDonors(true);
     try {
       const res = await axios.get(`${API_BASE}/donors/camp/${selectedCamp}`, {
@@ -72,10 +70,7 @@ const Admin = () => {
     } catch (err) {
       console.error("Failed to fetch donors:", err.response || err);
       setDonors([]);
-      if ([401, 403].includes(err.response?.status)) {
-        localStorage.removeItem("admin-token");
-        navigate("/admin-login");
-      }
+      if ([401, 403].includes(err.response?.status)) handleLogout();
     } finally {
       setLoadingDonors(false);
     }
@@ -100,18 +95,12 @@ const Admin = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setNewCamp({
-        name: "",
-        location: "",
-        date: "",
-        organizerName: "",
-        organizerContact: "",
-        proName: "",
-        hospitalName: "",
+        name: "", location: "", date: "", organizerName: "", organizerContact: "", proName: "", hospitalName: ""
       });
       fetchCamps();
       alert("Camp added successfully!");
     } catch (err) {
-      console.error(err);
+      console.error(err.response || err);
       alert("Error adding camp.");
     }
   };
@@ -126,7 +115,7 @@ const Admin = () => {
       fetchDonors();
       alert("Donor deleted successfully!");
     } catch (err) {
-      console.error(err);
+      console.error(err.response || err);
       alert("Error deleting donor");
     }
   };
@@ -151,7 +140,7 @@ const Admin = () => {
       );
       setEditDonorId(null);
     } catch (err) {
-      console.error(err);
+      console.error(err.response || err);
       alert("Error saving donor update");
     }
   };
@@ -193,8 +182,7 @@ const Admin = () => {
     <div className="container py-2">
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center flex-wrap px-3 py-2"
-        style={{ position: "sticky", top: "70px", marginTop: "70px", backgroundColor: "white", borderBottom: "1px solid #ddd", zIndex: 1050 }}
-      >
+        style={{ position: "sticky", top: "70px", marginTop: "70px", backgroundColor: "white", borderBottom: "1px solid #ddd", zIndex: 1050 }}>
         <h2 className="text-danger mb-0">Camps</h2>
         <button className="btn btn-danger" onClick={handleLogout}>Logout</button>
       </div>
@@ -217,13 +205,7 @@ const Admin = () => {
             </div>
           ))}
           <div className="col-md-4">
-            <select
-              className="form-select"
-              name="hospitalName"
-              value={newCamp.hospitalName}
-              onChange={handleNewCampChange}
-              required
-            >
+            <select className="form-select" name="hospitalName" value={newCamp.hospitalName} onChange={handleNewCampChange} required>
               <option value="">Select Hospital</option>
               {["Apollo Hospital","Fortis Hospital","AIIMS","Nanavati Hospital","Tata Memorial Hospital","Other"].map((h, i) => (
                 <option key={i} value={h}>{h}</option>
@@ -272,13 +254,7 @@ const Admin = () => {
       {selectedCamp && (
         <div className="mt-5">
           <h4 className="text-danger">Donors for Camp: {camps.find(c => c._id === selectedCamp)?.name || ""}</h4>
-          <input
-            type="text"
-            className="form-control mb-3"
-            placeholder="Search donors..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
+          <input type="text" className="form-control mb-3" placeholder="Search donors..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           <button className="btn btn-success mb-3" onClick={downloadPDF}>Download PDF</button>
 
           {loadingDonors ? <p>Loading donors...</p> :
