@@ -4,7 +4,7 @@ import axios from 'axios';
 import emailjs from '@emailjs/browser';
 import logo from '../assets/images/blood donor.png';
 import '../styles/DonorRegistration.css';
-
+const API_BASE = "https://www.lifelinebloodcenter.org/api";
 const DonorRegistration = () => {
   const location = useLocation();
   const query = new URLSearchParams(location.search);
