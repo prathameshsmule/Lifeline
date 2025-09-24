@@ -24,10 +24,6 @@ const Admin = () => {
 
   const navigate = useNavigate();
 
-  // ... rest of your Admin component code
-
-  const navigate = useNavigate();
-
   useEffect(() => {
     const token = localStorage.getItem("admin-token");
     if (!token) navigate("/admin-login");
