@@ -5,36 +5,17 @@ import { verifyToken } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-// ✅ Add New Camp (with coupons support)
+// Add New Camp
 router.post('/', verifyToken, async (req, res) => {
   try {
-    const {
-      name,
-      location,
-      date,
-      organizerName,
-      organizerContact,
-      proName,
-      hospitalName
-  
-    } = req.body
+    const { name, location, date, organizerName, organizerContact, proName, hospitalName } = req.body
 
     if (!name) return res.status(400).json({ message: 'Camp name is required' })
 
     const existing = await Camp.findOne({ name })
     if (existing) return res.status(400).json({ message: 'Camp already exists' })
 
-    const camp = new Camp({
-      name,
-      location,
-      date,
-      organizerName,
-      organizerContact,
-      proName,
-      hospitalName
-     
-    })
-
+    const camp = new Camp({ name, location, date, organizerName, organizerContact, proName, hospitalName })
     await camp.save()
 
     res.status(201).json({ message: 'Camp added successfully', camp })
@@ -43,31 +24,31 @@ router.post('/', verifyToken, async (req, res) => {
   }
 })
 
-// ✅ Get All Camps with donor count (and coupons included)
+// Get All Camps with donor count
 router.get('/', async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 })
 
-    // Aggregate donor counts per camp
+    // Aggregate donor counts per camp using camp _id
     const donorCounts = await Donor.aggregate([
       {
         $group: {
-          _id: '$camp',
+          _id: '$camp', // camp is stored as ObjectId
           count: { $sum: 1 }
         }
       }
     ])
 
-    // Create map of campName -> count
+    // Map _id -> count
     const countMap = {}
     donorCounts.forEach(item => {
-      countMap[item._id] = item.count
+      countMap[item._id.toString()] = item.count
     })
 
     // Add donorCount to each camp object
     const campsWithCounts = camps.map(camp => ({
       ...camp._doc,
-      donorCount: countMap[camp.name] || 0
+      donorCount: countMap[camp._id.toString()] || 0
     }))
 
     res.json(campsWithCounts)
@@ -76,7 +57,7 @@ router.get('/', async (req, res) => {
   }
 })
 
-// ✅ Add / Update Coupons for a Camp
+// Add / Update Coupons for a Camp
 router.put('/:id/coupons', verifyToken, async (req, res) => {
   try {
     const { coupons } = req.body
