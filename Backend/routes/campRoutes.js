@@ -50,22 +50,4 @@ router.put('/:id/coupons', verifyToken, async (req, res) => {
   }
 })
 
-// ✅ Delete a Camp by ID (and all its donors)
-router.delete('/:id', verifyToken, async (req, res) => {
-  try {
-    const camp = await Camp.findById(req.params.id)
-    if (!camp) return res.status(404).json({ message: 'Camp not found' })
-
-    // Delete all donors linked to this camp
-    await Donor.deleteMany({ camp: camp._id })
-
-    // Delete the camp itself
-    await camp.deleteOne()
-
-    res.json({ message: '⚠️ Camp and all its donors have been deleted successfully.' })
-  } catch (err) {
-    res.status(500).json({ message: 'Error deleting camp', error: err.message })
-  }
-})
-
 export default router
