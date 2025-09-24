@@ -31,27 +31,27 @@ const DonorRegistration = () => {
 
   // Fetch camps from backend
   useEffect(() => {
-    axios.get('https://www.lifelinebloodcenter.org/api/camps')
-      .then(res => {
-        console.log("Camps fetched:", res.data);
+    const fetchCamps = async () => {
+      try {
+        const res = await axios.get('https://www.lifelinebloodcenter.org/api/camps');
+        console.log("Camps fetched:", res.data); // Debug
         setCamps(res.data);
-      })
-      .catch(err => {
+
+        // Lock camp if URL param exists
+        if (campIdFromUrl) {
+          const selectedCamp = res.data.find(c => c._id === campIdFromUrl);
+          if (selectedCamp) {
+            setFormData(prev => ({ ...prev, camp: selectedCamp._id }));
+            setCampLocked(true);
+          }
+        }
+      } catch (err) {
         console.error("Error fetching camps:", err);
         setCamps([]);
-      });
-  }, []);
-
-  // Lock camp if URL has campId
-  useEffect(() => {
-    if (campIdFromUrl && camps.length > 0) {
-      const selectedCamp = camps.find(c => c._id === campIdFromUrl);
-      if (selectedCamp) {
-        setFormData(prev => ({ ...prev, camp: selectedCamp._id }));
-        setCampLocked(true);
       }
-    }
-  }, [campIdFromUrl, camps]);
+    };
+    fetchCamps();
+  }, [campIdFromUrl]); // Depend on campIdFromUrl
 
   // Calculate age
   const calculateAge = (dobValue) => {
@@ -63,7 +63,6 @@ const DonorRegistration = () => {
     return age;
   };
 
-  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === 'dob') {
@@ -74,7 +73,6 @@ const DonorRegistration = () => {
     }
   };
 
-  // Send confirmation email
   const sendEmail = async (donorData) => {
     try {
       const campName = camps.find(c => c._id === donorData.camp)?.name || 'Selected Camp';
@@ -96,7 +94,6 @@ const DonorRegistration = () => {
     }
   };
 
-  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (calculatedAge < 18) { alert("Minimum age 18"); return; }
