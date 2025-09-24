@@ -28,20 +28,25 @@ const Admin = () => {
   });
 
   const navigate = useNavigate();
+  const token = localStorage.getItem("admin-token");
 
-  // ✅ Check admin token on mount
+  // ✅ Redirect if no token
   useEffect(() => {
-    const token = localStorage.getItem("admin-token");
     if (!token) navigate("/admin-login");
     else fetchCamps();
   }, []);
 
-  // ✅ Fetch donors when a camp is selected
+  // ✅ Auto-select first camp after fetching
+  useEffect(() => {
+    if (camps.length > 0 && !selectedCamp) setSelectedCamp(camps[0]._id);
+  }, [camps]);
+
+  // ✅ Fetch donors when selectedCamp changes
   useEffect(() => {
     if (selectedCamp) fetchDonors();
   }, [selectedCamp]);
 
-  // Fetch all camps
+  // Fetch camps
   const fetchCamps = async () => {
     setLoadingCamps(true);
     try {
@@ -57,9 +62,7 @@ const Admin = () => {
 
   // Fetch donors for selected camp
   const fetchDonors = async () => {
-    const token = localStorage.getItem("admin-token");
     if (!token) return navigate("/admin-login");
-
     setLoadingDonors(true);
     try {
       const res = await axios.get(`${API_BASE}/donors/camp/${selectedCamp}`, {
@@ -93,7 +96,6 @@ const Admin = () => {
   const handleNewCampSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem("admin-token");
       await axios.post(`${API_BASE}/camps`, newCamp, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -118,7 +120,6 @@ const Admin = () => {
   const handleDeleteDonor = async (id) => {
     if (!window.confirm("Are you sure you want to delete this donor?")) return;
     try {
-      const token = localStorage.getItem("admin-token");
       await axios.delete(`${API_BASE}/donors/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -142,7 +143,6 @@ const Admin = () => {
 
   const handleEditSave = async (id) => {
     try {
-      const token = localStorage.getItem("admin-token");
       await axios.put(`${API_BASE}/donors/${id}`, editForm, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -192,16 +192,8 @@ const Admin = () => {
   return (
     <div className="container py-2">
       {/* Header */}
-      <div
-        className="d-flex justify-content-between align-items-center flex-wrap px-3 py-2"
-        style={{
-          position: "sticky",
-          top: "70px",
-          marginTop: "70px",
-          backgroundColor: "white",
-          borderBottom: "1px solid #ddd",
-          zIndex: 1050
-        }}
+      <div className="d-flex justify-content-between align-items-center flex-wrap px-3 py-2"
+        style={{ position: "sticky", top: "70px", marginTop: "70px", backgroundColor: "white", borderBottom: "1px solid #ddd", zIndex: 1050 }}
       >
         <h2 className="text-danger mb-0">Camps</h2>
         <button className="btn btn-danger" onClick={handleLogout}>Logout</button>
@@ -319,7 +311,6 @@ const Admin = () => {
                         <select className="form-select form-select-sm" value={donor.remark || ""} onChange={async e => {
                           const remark = e.target.value;
                           try {
-                            const token = localStorage.getItem("admin-token");
                             await axios.put(`${API_BASE}/donors/${donor._id}`, { remark }, { headers: { Authorization: `Bearer ${token}` } });
                             setDonors(prev => prev.map(d => d._id === donor._id ? { ...d, remark } : d));
                           } catch { alert("Error updating remark"); }
