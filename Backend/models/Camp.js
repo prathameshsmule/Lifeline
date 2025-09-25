@@ -1,3 +1,4 @@
+// models/Camp.js
 import mongoose from 'mongoose';
 
 const campSchema = new mongoose.Schema({
