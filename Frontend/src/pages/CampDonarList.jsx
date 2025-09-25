@@ -1,68 +1,72 @@
-import React, { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
-import axios from 'axios'
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import axios from 'axios';
+
+const API_BASE = 'https://www.lifelinebloodcenter.org/api'; // ✅ Define API_BASE
 
 const CampDonorList = () => {
-  const location = useLocation()
-  const query = new URLSearchParams(location.search)
-  const campIdFromUrl = query.get("campId") // Get campId from URL
+  const location = useLocation();
+  const query = new URLSearchParams(location.search);
+  const campIdFromUrl = query.get("campId"); // Get campId from URL
 
-  const [camps, setCamps] = useState([])
+  const [camps, setCamps] = useState([]);
+  const [loadingCamps, setLoadingCamps] = useState(true); // ✅ Loading state
   const [formData, setFormData] = useState({
     name: '', age: '', weight: '', bloodGroup: '',
     email: '', phone: '', address: '', camp: ''
-  })
+  });
 
-  const [campLocked, setCampLocked] = useState(false)
+  const [campLocked, setCampLocked] = useState(false);
 
   // Fetch camps from backend
   useEffect(() => {
     const fetchCamps = async () => {
+      setLoadingCamps(true);
       try {
-      // Fetch camps for donor registration
-const res = await axios.get(`${API_BASE}/camps`);
-setCamps(res.data);
-
+        const res = await axios.get(`${API_BASE}/camps`); // ✅ Public route, no token
+        setCamps(res.data);
 
         // If URL has campId, lock the camp
         if (campIdFromUrl) {
-          const selectedCamp = res.data.find(c => c._id === campIdFromUrl)
+          const selectedCamp = res.data.find(c => c._id === campIdFromUrl);
           if (selectedCamp) {
-            setFormData(prev => ({ ...prev, camp: selectedCamp._id }))
-            setCampLocked(true)
+            setFormData(prev => ({ ...prev, camp: selectedCamp._id }));
+            setCampLocked(true);
           }
         }
       } catch (err) {
-        console.error("Error fetching camps:", err)
-        setCamps([])
+        console.error("Error fetching camps:", err);
+        setCamps([]);
+      } finally {
+        setLoadingCamps(false);
       }
     }
-    fetchCamps()
-  }, [campIdFromUrl])
+    fetchCamps();
+  }, [campIdFromUrl]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     // Validation
-    if (parseInt(formData.age, 10) < 18) { alert('Minimum age is 18'); return }
-    if (parseInt(formData.weight, 10) < 50) { alert('Minimum weight is 50 kg'); return }
+    if (parseInt(formData.age, 10) < 18) { alert('Minimum age is 18'); return; }
+    if (parseInt(formData.weight, 10) < 50) { alert('Minimum weight is 50 kg'); return; }
 
     try {
-      await axios.post('https://www.lifelinebloodcenter.org/api/donors', formData)
-      alert('Donor registered successfully!')
+      await axios.post(`${API_BASE}/donors`, formData);
+      alert('Donor registered successfully!');
 
       // Reset form
       setFormData({
         name: '', age: '', weight: '', bloodGroup: '',
         email: '', phone: '', address: '', camp: campLocked ? formData.camp : ''
-      })
+      });
     } catch (err) {
-      console.error(err)
-      alert('Error registering donor')
+      console.error(err);
+      alert('Error registering donor');
     }
   }
 
@@ -87,16 +91,26 @@ setCamps(res.data);
         <textarea className="form-control mb-2" name="address" placeholder="Address" value={formData.address} onChange={handleChange} rows="3" required />
 
         {/* Camp select */}
-        <select 
-          className="form-select mb-2" 
-          name="camp" 
-          value={formData.camp} 
-          onChange={handleChange} 
-          required 
-          disabled={campLocked}
+        <select
+          className="form-select mb-2"
+          name="camp"
+          value={formData.camp}
+          onChange={handleChange}
+          required
+          disabled={campLocked || loadingCamps} // ✅ Disable while loading
         >
-          <option value="">Select Camp</option>
-          {camps.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+          {loadingCamps ? (
+            <option value="">Loading camps...</option>
+          ) : (
+            <>
+              <option value="">Select Camp</option>
+              {camps.length > 0 ? camps.map(c => (
+                <option key={c._id} value={c._id}>{c.name}</option>
+              )) : (
+                <option value="">No camps available</option>
+              )}
+            </>
+          )}
         </select>
 
         <button type="submit" className="btn btn-danger">Register</button>
@@ -105,4 +119,4 @@ setCamps(res.data);
   )
 }
 
-export default CampDonorList
+export default CampDonorList;
