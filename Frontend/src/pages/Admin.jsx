@@ -28,26 +28,30 @@ const Admin = () => {
   });
 
   const navigate = useNavigate();
+
   const token = localStorage.getItem("admin-token");
 
+  // ✅ Check admin token on mount
   useEffect(() => {
     if (!token) return navigate("/admin-login");
     fetchCamps();
   }, []);
 
+  // ✅ Fetch donors when a camp is selected
   useEffect(() => {
     if (selectedCamp) fetchDonors();
   }, [selectedCamp]);
 
+  // Fetch all camps
   const fetchCamps = async () => {
     setLoadingCamps(true);
     try {
       const res = await axios.get(`${API_BASE}/camps`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` }
       });
       setCamps(res.data);
     } catch (err) {
-      console.error(err.response || err);
+      console.error("Failed to fetch camps:", err.response || err);
       setCamps([]);
       if ([401, 403].includes(err.response?.status)) handleLogout();
     } finally {
@@ -55,6 +59,7 @@ const Admin = () => {
     }
   };
 
+  // Fetch donors for selected camp
   const fetchDonors = async () => {
     setLoadingDonors(true);
     try {
@@ -63,7 +68,7 @@ const Admin = () => {
       });
       setDonors(res.data || []);
     } catch (err) {
-      console.error(err.response || err);
+      console.error("Failed to fetch donors:", err.response || err);
       setDonors([]);
       if ([401, 403].includes(err.response?.status)) handleLogout();
     } finally {
@@ -71,15 +76,18 @@ const Admin = () => {
     }
   };
 
+  // Logout
   const handleLogout = () => {
     localStorage.removeItem("admin-token");
     navigate("/admin-login");
   };
 
+  // Handle new camp form changes
   const handleNewCampChange = (e) => {
     setNewCamp({ ...newCamp, [e.target.name]: e.target.value });
   };
 
+  // Add new camp
   const handleNewCampSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -97,6 +105,7 @@ const Admin = () => {
     }
   };
 
+  // Delete donor
   const handleDeleteDonor = async (id) => {
     if (!window.confirm("Are you sure you want to delete this donor?")) return;
     try {
@@ -111,6 +120,7 @@ const Admin = () => {
     }
   };
 
+  // Edit donor
   const handleEditClick = (donor) => {
     setEditDonorId(donor._id);
     setEditForm({ ...donor });
@@ -135,17 +145,31 @@ const Admin = () => {
     }
   };
 
+  // Download PDF of donors
   const downloadPDF = () => {
     if (!donors.length) return alert("No donors to export.");
+
     const doc = new jsPDF();
     doc.setFontSize(16);
     const campName = camps.find((c) => c._id === selectedCamp)?.name || "All Camps";
     doc.text(`Donor List for Camp: ${campName}`, 14, 15);
-    const tableColumn = ["#", "Name", "Blood Group", "Age", "Weight (kg)", "Email", "Phone", "Address", "Remark"];
+
+    const tableColumn = [
+      "#", "Name", "Blood Group", "Age", "Weight (kg)",
+      "Email", "Phone", "Address", "Remark"
+    ];
     const tableRows = donors.map((donor, index) => [
-      index + 1, donor.name, donor.bloodGroup, donor.age, donor.weight,
-      donor.email, donor.phone, donor.address, donor.remark || ""
+      index + 1,
+      donor.name,
+      donor.bloodGroup,
+      donor.age,
+      donor.weight,
+      donor.email,
+      donor.phone,
+      donor.address,
+      donor.remark || ""
     ]);
+
     autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20 });
     doc.save(`DonorList_${campName}.pdf`);
   };
@@ -225,6 +249,74 @@ const Admin = () => {
           ))}
         </div>
       }
+
+      {/* Donor Table */}
+      {selectedCamp && (
+        <div className="mt-5">
+          <h4 className="text-danger">Donors for Camp: {camps.find(c => c._id === selectedCamp)?.name || ""}</h4>
+          <input type="text" className="form-control mb-3" placeholder="Search donors..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+          <button className="btn btn-success mb-3" onClick={downloadPDF}>Download PDF</button>
+
+          {loadingDonors ? <p>Loading donors...</p> :
+            <div className="table-responsive">
+              <table className="table table-bordered table-hover text-center align-middle">
+                <thead className="table-danger">
+                  <tr>
+                    {["#","Name","Blood Group","Age","Weight (kg)","Email","Phone","Address","Remark","Action"].map((h,i)=><th key={i}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDonors.length === 0 ? (
+                    <tr><td colSpan="10">No donor data available.</td></tr>
+                  ) : filteredDonors.map((donor,index) => (
+                    <tr key={donor._id}>
+                      <td>{index + 1}</td>
+                      <td>{editDonorId === donor._id ? <input className="form-control form-control-sm" name="name" value={editForm.name} onChange={handleEditChange}/> : donor.name}</td>
+                      <td>{editDonorId === donor._id ? (
+                        <select className="form-select form-select-sm" name="bloodGroup" value={editForm.bloodGroup} onChange={handleEditChange}>
+                          <option value="">Select</option>
+                          {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+                        </select>
+                      ) : donor.bloodGroup}</td>
+                      <td>{editDonorId === donor._id ? <input className="form-control form-control-sm" name="age" value={editForm.age} onChange={handleEditChange}/> : donor.age}</td>
+                      <td>{editDonorId === donor._id ? <input className="form-control form-control-sm" name="weight" value={editForm.weight} onChange={handleEditChange}/> : donor.weight}</td>
+                      <td>{editDonorId === donor._id ? <input className="form-control form-control-sm" name="email" value={editForm.email} onChange={handleEditChange}/> : donor.email}</td>
+                      <td>{editDonorId === donor._id ? <input className="form-control form-control-sm" name="phone" value={editForm.phone} onChange={handleEditChange}/> : donor.phone}</td>
+                      <td>{editDonorId === donor._id ? <input className="form-control form-control-sm" name="address" value={editForm.address} onChange={handleEditChange}/> : donor.address}</td>
+                      <td>
+                        <select className="form-select form-select-sm" value={donor.remark || ""} onChange={async e => {
+                          const remark = e.target.value;
+                          try {
+                            await axios.put(`${API_BASE}/donors/${donor._id}`, { remark }, { headers: { Authorization: `Bearer ${token}` } });
+                            setDonors(prev => prev.map(d => d._id === donor._id ? { ...d, remark } : d));
+                          } catch { alert("Error updating remark"); }
+                        }}>
+                          <option value="">Select</option>
+                          <option value="Donation Done">Donation Done</option>
+                          <option value="Not Done">Not Done</option>
+                        </select>
+                      </td>
+                      <td>
+                        {editDonorId === donor._id ? (
+                          <>
+                            <button className="btn btn-sm btn-success me-2" onClick={() => handleEditSave(donor._id)}>Save</button>
+                            <button className="btn btn-sm btn-secondary" onClick={() => setEditDonorId(null)}>Cancel</button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="btn btn-sm btn-warning me-2" onClick={() => handleEditClick(donor)}>Edit</button>
+                            <button className="btn btn-sm btn-danger" onClick={() => handleDeleteDonor(donor._id)}>Delete</button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      )}
     </div>
   );
 };
