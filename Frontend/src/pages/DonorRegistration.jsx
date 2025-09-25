@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import axios from "axios";
 import emailjs from '@emailjs/browser';
 import logo from '../assets/images/blood donor.png';
 import '../styles/DonorRegistration.css';
@@ -32,12 +32,12 @@ const DonorRegistration = () => {
     emailjs.init('NtoYnRvbn1y7ywGKq');
   }, []);
 
-  // Fetch camps
+  // Fetch camps from public endpoint
   useEffect(() => {
     const fetchCamps = async () => {
       setLoadingCamps(true);
       try {
-        const res = await axios.get(`${API_BASE}/camps`);
+        const res = await axios.get(`${API_BASE}/camps/public`); // ✅ public endpoint
         setCamps(res.data);
 
         // Preselect camp if campIdFromUrl exists
@@ -227,7 +227,11 @@ const DonorRegistration = () => {
             ) : (
               <>
                 <option value="">Select Camp</option>
-                {camps.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                {camps.map(c => (
+                  <option key={c._id} value={c._id}>
+                    {c.name} ({c.date ? new Date(c.date).toLocaleDateString() : "N/A"})
+                  </option>
+                ))}
               </>
             )}
           </select>
