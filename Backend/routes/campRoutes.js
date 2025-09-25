@@ -6,7 +6,17 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Add New Camp (admin)
+// ✅ Public GET all camps (for donor registration)
+router.get('/', async (req, res) => {
+  try {
+    const camps = await Camp.find().sort({ date: -1 });
+    res.json(camps);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching camps', error: err.message });
+  }
+});
+
+// ✅ Protected POST: Add New Camp (admin only)
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { name, location, date, organizerName, organizerContact, proName, hospitalName } = req.body;
@@ -23,17 +33,7 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// AFTER (public)
-router.get('/', async (req, res) => {
-  try {
-    const camps = await Camp.find().sort({ date: -1 });
-    res.json(camps);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching camps', error: err.message });
-  }
-});
-
-// Admin: All camps with donor counts
+// ✅ Protected GET: All camps with donor counts (admin only)
 router.get('/with-count', verifyToken, async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 });
@@ -49,7 +49,7 @@ router.get('/with-count', verifyToken, async (req, res) => {
   }
 });
 
-// Get single camp with donor count
+// ✅ Protected GET: Single camp with donor count (admin only)
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -64,15 +64,5 @@ router.get('/:id', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Error fetching camp', error: err.message });
   }
 });
-// BEFORE (protected)
-router.get('/', verifyToken, async (req, res) => {
-  try {
-    const camps = await Camp.find().sort({ date: -1 });s
-    res.json(camps);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching camps', error: err.message });
-  }
-});
-
 
 export default router;
