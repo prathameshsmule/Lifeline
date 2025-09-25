@@ -1,71 +1,106 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React, { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
+import axios from 'axios'
 
-const API_BASE = "https://www.lifelinebloodcenter.org/api";
+const CampDonorList = () => {
+  const location = useLocation()
+  const query = new URLSearchParams(location.search)
+  const campIdFromUrl = query.get("campId") // Get campId from URL
 
-const Register = () => {
-  const [camps, setCamps] = useState([]);
-  const [selectedCamp, setSelectedCamp] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [bloodGroup, setBloodGroup] = useState("");
+  const [camps, setCamps] = useState([])
+  const [formData, setFormData] = useState({
+    name: '', age: '', weight: '', bloodGroup: '',
+    email: '', phone: '', address: '', camp: ''
+  })
 
+  const [campLocked, setCampLocked] = useState(false)
+
+  // Fetch camps from backend
   useEffect(() => {
-    fetchCamps();
-  }, []);
+    const fetchCamps = async () => {
+      try {
+        const res = await axios.get('https://www.lifelinebloodcenter.org/api/camps')
+        setCamps(res.data)
 
-  const fetchCamps = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/camps/public`);
-      setCamps(res.data);
-    } catch (err) {
-      console.error("Failed to fetch camps:", err.response || err);
-      setCamps([]);
+        // If URL has campId, lock the camp
+        if (campIdFromUrl) {
+          const selectedCamp = res.data.find(c => c._id === campIdFromUrl)
+          if (selectedCamp) {
+            setFormData(prev => ({ ...prev, camp: selectedCamp._id }))
+            setCampLocked(true)
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching camps:", err)
+        setCamps([])
+      }
     }
-  };
+    fetchCamps()
+  }, [campIdFromUrl])
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedCamp) return alert("Please select a camp");
+    e.preventDefault()
+
+    // Validation
+    if (parseInt(formData.age, 10) < 18) { alert('Minimum age is 18'); return }
+    if (parseInt(formData.weight, 10) < 50) { alert('Minimum weight is 50 kg'); return }
 
     try {
-      await axios.post(`${API_BASE}/donors`, {
-        name, email, phone, bloodGroup, camp: selectedCamp
-      });
-      alert("Registered successfully!");
-      setName(""); setEmail(""); setPhone(""); setBloodGroup(""); setSelectedCamp("");
+      await axios.post('https://www.lifelinebloodcenter.org/api/donors', formData)
+      alert('Donor registered successfully!')
+
+      // Reset form
+      setFormData({
+        name: '', age: '', weight: '', bloodGroup: '',
+        email: '', phone: '', address: '', camp: campLocked ? formData.camp : ''
+      })
     } catch (err) {
-      console.error(err.response || err);
-      alert("Registration failed");
+      console.error(err)
+      alert('Error registering donor')
     }
-  };
+  }
 
   return (
-    <div className="container py-5">
-      <h2 className="mb-4">Blood Donor Registration</h2>
-      <form onSubmit={handleSubmit} className="border p-4 rounded bg-light">
-        <div className="mb-3">
-          <label>Camp</label>
-          <select className="form-select" value={selectedCamp} onChange={e => setSelectedCamp(e.target.value)} required>
-            <option value="">Select Camp</option>
-            {camps.map(c => <option key={c._id} value={c._id}>{c.name} ({c.date ? new Date(c.date).toLocaleDateString() : "N/A"})</option>)}
-          </select>
-        </div>
-        <div className="mb-3"><label>Name</label><input className="form-control" value={name} onChange={e=>setName(e.target.value)} required/></div>
-        <div className="mb-3"><label>Email</label><input type="email" className="form-control" value={email} onChange={e=>setEmail(e.target.value)}/></div>
-        <div className="mb-3"><label>Phone</label><input className="form-control" value={phone} onChange={e=>setPhone(e.target.value)} required/></div>
-        <div className="mb-3">
-          <label>Blood Group</label>
-          <select className="form-select" value={bloodGroup} onChange={e=>setBloodGroup(e.target.value)} required>
-            <option value="">Select</option>
-            {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(bg => <option key={bg} value={bg}>{bg}</option>)}
-          </select>
-        </div>
-        <button type="submit" className="btn btn-primary">Register</button>
+    <div className="container py-4">
+      <h3 className="text-danger mb-3">
+        Donor Registration {campIdFromUrl && `for selected Camp`}
+      </h3>
+
+      <form onSubmit={handleSubmit} className="border p-3 rounded bg-light">
+        <input className="form-control mb-2" name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} required />
+        <input className="form-control mb-2" name="age" type="number" placeholder="Age" value={formData.age} onChange={handleChange} required />
+        <input className="form-control mb-2" name="weight" type="number" placeholder="Weight (kg)" value={formData.weight} onChange={handleChange} required />
+        <select className="form-select mb-2" name="bloodGroup" value={formData.bloodGroup} onChange={handleChange} required>
+          <option value="">Select Blood Group</option>
+          {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', "Don't Know"].map(bg => (
+            <option key={bg} value={bg}>{bg}</option>
+          ))}
+        </select>
+        <input className="form-control mb-2" name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
+        <input className="form-control mb-2" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} required />
+        <textarea className="form-control mb-2" name="address" placeholder="Address" value={formData.address} onChange={handleChange} rows="3" required />
+
+        {/* Camp select */}
+        <select 
+          className="form-select mb-2" 
+          name="camp" 
+          value={formData.camp} 
+          onChange={handleChange} 
+          required 
+          disabled={campLocked}
+        >
+          <option value="">Select Camp</option>
+          {camps.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+        </select>
+
+        <button type="submit" className="btn btn-danger">Register</button>
       </form>
     </div>
-  );
-};
+  )
+}
 
-export default Register;
+export default CampDonorList
