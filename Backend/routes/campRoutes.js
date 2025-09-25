@@ -7,8 +7,10 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Public GET: list camps (for registration page)
-router.get('/', async (req, res) => {
+/**
+ * Public GET: list camps for registration page
+ */
+router.get('/public', async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: -1 });
     res.json(camps);
@@ -17,8 +19,9 @@ router.get('/', async (req, res) => {
   }
 });
 
-
-// Admin: create new camp (protected)
+/**
+ * Admin: create new camp (protected)
+ */
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { name, location, date, organizerName, organizerContact, proName, hospitalName } = req.body;
@@ -35,7 +38,9 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// Admin: list camps with donor counts (protected)
+/**
+ * Admin: list camps with donor counts (protected)
+ */
 router.get('/with-count', verifyToken, async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 });
@@ -51,7 +56,9 @@ router.get('/with-count', verifyToken, async (req, res) => {
   }
 });
 
-// Admin: single camp (protected)
+/**
+ * Admin: single camp (protected)
+ */
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
