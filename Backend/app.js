@@ -41,7 +41,7 @@ app.get("/", (req, res) => res.send("✅ Blood Donation Backend is running!"))
 
 // Feature routes
 app.use('/api/donors', donorRoutes)
-app.use('/api/camps', campRoutes)
+app.use('/api/camps', campRoutes); // no token middleware
 app.use('/api/admin', adminRoutes)
 
 // Start server
