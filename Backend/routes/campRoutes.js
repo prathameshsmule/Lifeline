@@ -23,10 +23,10 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// Public list of camps
+// AFTER (public)
 router.get('/', async (req, res) => {
   try {
-    const camps = await Camp.find().sort({ date: 1 });
+    const camps = await Camp.find().sort({ date: -1 });
     res.json(camps);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching camps', error: err.message });
@@ -64,5 +64,15 @@ router.get('/:id', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Error fetching camp', error: err.message });
   }
 });
+// BEFORE (protected)
+router.get('/', verifyToken, async (req, res) => {
+  try {
+    const camps = await Camp.find().sort({ date: -1 });s
+    res.json(camps);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching camps', error: err.message });
+  }
+});
+
 
 export default router;
