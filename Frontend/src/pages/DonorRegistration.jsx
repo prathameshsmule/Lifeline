@@ -1,46 +1,71 @@
 import React, { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import axios from 'axios'
 
 const DonorRegistration = () => {
-  const { campName } = useParams()
-  const [form, setForm] = useState({
-    name: '', age: '', weight: '', bloodGroup: '', email: '',
-    phone: '', address: '', camp: ''
+  const location = useLocation()
+  const query = new URLSearchParams(location.search)
+  const campIdFromUrl = query.get("campId")
+
+  const [camps, setCamps] = useState([])
+  const [formData, setFormData] = useState({
+    name: '', age: '', weight: '', bloodGroup: '',
+    email: '', phone: '', address: '', camp: campIdFromUrl || ''
   })
 
+  // Fetch camps
   useEffect(() => {
-    if (campName) {
-      setForm(prev => ({ ...prev, camp: campName }))
-    }
-  }, [campName])
+    axios.get('https://www.lifelinebloodcenter.org/api/camps')
+      .then(res => setCamps(res.data))
+      .catch(() => setCamps([]))
+  }, [])
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // Validation
+    if (parseInt(formData.age, 10) < 18) { alert('Minimum age is 18'); return }
+    if (parseInt(formData.weight, 10) < 50) { alert('Minimum weight is 50 kg'); return }
+
     try {
-      await axios.post('https://www.lifelinebloodcenter.org/api/donors', form)
+      await axios.post('https://www.lifelinebloodcenter.org/api/donors', formData)
       alert('Donor registered successfully!')
-      setForm({ name: '', age: '', weight: '', bloodGroup: '', email: '', phone: '', address: '', camp: campName || '' })
+      setFormData({ name: '', age: '', weight: '', bloodGroup: '', email: '', phone: '', address: '', camp: campIdFromUrl || '' })
     } catch (err) {
+      console.error(err)
       alert('Error registering donor')
     }
   }
 
   return (
     <div className="container py-4">
-      <h3 className="text-danger mb-3">Donor Registration {campName && `for Camp: ${campName}`}</h3>
+      <h3 className="text-danger mb-3">Donor Registration {campIdFromUrl && `for selected Camp`}</h3>
       <form onSubmit={handleSubmit} className="border p-3 rounded bg-light">
-        {/* Form fields */}
-        {/* ... name, age, weight, etc ... */}
-        {/* Include only if no campName from URL */}
-        {!campName && (
-          <input className="form-control mb-2" name="camp" placeholder="Camp Name" value={form.camp} onChange={handleChange} required />
+        <input className="form-control mb-2" name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} required />
+        <input className="form-control mb-2" name="age" type="number" placeholder="Age" value={formData.age} onChange={handleChange} required />
+        <input className="form-control mb-2" name="weight" type="number" placeholder="Weight (kg)" value={formData.weight} onChange={handleChange} required />
+        <select className="form-select mb-2" name="bloodGroup" value={formData.bloodGroup} onChange={handleChange} required>
+          <option value="">Select Blood Group</option>
+          {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', "Don't Know"].map(bg => (
+            <option key={bg} value={bg}>{bg}</option>
+          ))}
+        </select>
+        <input className="form-control mb-2" name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
+        <input className="form-control mb-2" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} required />
+        <textarea className="form-control mb-2" name="address" placeholder="Address" value={formData.address} onChange={handleChange} rows="3" required />
+
+        {/* Camp select only if no campId from URL */}
+        {!campIdFromUrl && (
+          <select className="form-select mb-2" name="camp" value={formData.camp} onChange={handleChange} required>
+            <option value="">Select Camp</option>
+            {camps.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+          </select>
         )}
-        {/* Rest of the form */}
+
         <button type="submit" className="btn btn-danger">Register</button>
       </form>
     </div>
