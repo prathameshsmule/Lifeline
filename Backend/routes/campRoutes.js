@@ -1,3 +1,4 @@
+// routes/campRoutes.js
 import express from 'express';
 import mongoose from 'mongoose';
 import Camp from '../models/Camp.js';
@@ -6,7 +7,7 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// ✅ Public GET all camps (for donor registration)
+// Public GET: list camps (for registration page)
 router.get('/', async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: -1 });
@@ -16,7 +17,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ✅ Protected POST: Add New Camp (admin only)
+// Admin: create new camp (protected)
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { name, location, date, organizerName, organizerContact, proName, hospitalName } = req.body;
@@ -33,7 +34,7 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// ✅ Protected GET: All camps with donor counts (admin only)
+// Admin: list camps with donor counts (protected)
 router.get('/with-count', verifyToken, async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 });
@@ -49,7 +50,7 @@ router.get('/with-count', verifyToken, async (req, res) => {
   }
 });
 
-// ✅ Protected GET: Single camp with donor count (admin only)
+// Admin: single camp (protected)
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
