@@ -37,8 +37,10 @@ const DonorRegistration = () => {
     const fetchCamps = async () => {
       setLoadingCamps(true);
       try {
-        const res = await axios.get(`${API_BASE}/camps`);
-        setCamps(res.data);
+      // Fetch camps for donor registration
+const res = await axios.get(`${API_BASE}/camps`);
+setCamps(res.data);
+
 
         // Preselect camp if campIdFromUrl exists
         if (campIdFromUrl) {
