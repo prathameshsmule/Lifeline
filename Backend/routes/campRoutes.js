@@ -1,3 +1,4 @@
+// routes/campRoutes.js
 import express from 'express';
 import mongoose from 'mongoose';
 import Camp from '../models/Camp.js';
@@ -6,7 +7,21 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Add New Camp (admin)
+// === Public Routes ===
+
+// Get all camps (for registration page)
+router.get('/public', async (req, res) => {
+  try {
+    const camps = await Camp.find().sort({ date: -1 });
+    res.json(camps);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching camps', error: err.message });
+  }
+});
+
+// === Admin Routes (Protected) ===
+
+// Create new camp
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { name, location, date, organizerName, organizerContact, proName, hospitalName } = req.body;
@@ -23,17 +38,7 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// AFTER (public)
-router.get('/', async (req, res) => {
-  try {
-    const camps = await Camp.find().sort({ date: -1 });
-    res.json(camps);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching camps', error: err.message });
-  }
-});
-
-// Admin: All camps with donor counts
+// Get all camps with donor counts
 router.get('/with-count', verifyToken, async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 });
@@ -64,15 +69,5 @@ router.get('/:id', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Error fetching camp', error: err.message });
   }
 });
-// BEFORE (protected)
-router.get('/', verifyToken, async (req, res) => {
-  try {
-    const camps = await Camp.find().sort({ date: -1 });s
-    res.json(camps);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching camps', error: err.message });
-  }
-});
-
 
 export default router;
