@@ -19,8 +19,10 @@ const CampDonorList = () => {
   useEffect(() => {
     const fetchCamps = async () => {
       try {
-        const res = await axios.get('https://www.lifelinebloodcenter.org/api/camps')
-        setCamps(res.data)
+      // Fetch camps for donor registration
+const res = await axios.get(`${API_BASE}/camps`);
+setCamps(res.data);
+
 
         // If URL has campId, lock the camp
         if (campIdFromUrl) {
