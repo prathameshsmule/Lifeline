@@ -5,7 +5,7 @@ import Home from './pages/Home';
 import DonorRegistration from './pages/DonorRegistration';
 import Admin from './pages/Admin';
 import AdminLogin from './pages/AdminLogin';
-import CampDonorList from './pages/CampDonorList'; // ✅ Fixed spelling
+import CampDonorList from './pages/CampDonarList.jsx'; // ✅ Fixed spelling
 import Services from './pages/Services';
 import Navbar from './components/Navbar';
 
