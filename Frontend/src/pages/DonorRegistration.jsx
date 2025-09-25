@@ -20,15 +20,16 @@ const Register = () => {
     fetchCamps();
   }, []);
 
-  const fetchCamps = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/camps/public`);
-      setCamps(res.data);
-    } catch (err) {
-      console.error("Failed to fetch camps:", err.response || err);
-      setCamps([]);
-    }
-  };
+const fetchCamps = async () => {
+  try {
+    const res = await axios.get(`${API_BASE}/camps/public`); // must use /public
+    setCamps(res.data);
+  } catch (err) {
+    console.error("Failed to fetch camps:", err.response || err);
+    setCamps([]);
+  }
+};
+
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
