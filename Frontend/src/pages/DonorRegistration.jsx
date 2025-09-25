@@ -24,6 +24,7 @@ const DonorRegistration = () => {
     emailjs.init('NtoYnRvbn1y7ywGKq')
   }, [])
 
+  // Fetch camps and lock if campId present
   useEffect(() => {
     axios.get('https://www.lifelinebloodcenter.org/api/camps')
       .then(res => {
@@ -31,7 +32,7 @@ const DonorRegistration = () => {
         if (campIdFromUrl) {
           const selectedCamp = res.data.find(c => c._id === campIdFromUrl)
           if (selectedCamp) {
-            setFormData(prev => ({ ...prev, camp: selectedCamp.name }))
+            setFormData(prev => ({ ...prev, camp: selectedCamp._id }))
             setCampLocked(true)
           }
         }
@@ -39,49 +40,30 @@ const DonorRegistration = () => {
       .catch(() => setCamps([]))
   }, [campIdFromUrl])
 
-  // ✅ Custom function to calculate age from birth date
   const calculateAgeFromBirthDate = (birthDateValue) => {
     if (!birthDateValue) return null
-    
     const birthDate = new Date(birthDateValue)
     const today = new Date()
-    
-    // Calculate age
     let age = today.getFullYear() - birthDate.getFullYear()
     const monthDiff = today.getMonth() - birthDate.getMonth()
-    
-    // Adjust age if birthday hasn't occurred this year yet
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--
-    }
-    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--
     return age
   }
 
-  // ✅ Custom function to handle birth date changes
   const handleBirthDateChange = (dateValue) => {
-    // Update form data
     setFormData({ ...formData, dob: dateValue })
-    
-    // Calculate and set age using custom function
-    const age = calculateAgeFromBirthDate(dateValue)
-    setCalculatedAge(age)
+    setCalculatedAge(calculateAgeFromBirthDate(dateValue))
   }
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    
-    // Use custom function for birth date handling
     if (name === 'dob') {
       handleBirthDateChange(value)
       return
     }
-    
-    // Handle other form fields normally
     setFormData({ ...formData, [name]: value })
   }
 
-  // ✅ Send confirmation email
   const sendEmail = async (donorData) => {
     try {
       const templateParams = {
@@ -92,7 +74,7 @@ const DonorRegistration = () => {
         donor_blood_group: donorData.bloodGroup,
         donor_phone: donorData.phone,
         donor_address: donorData.address,
-        donor_camp: donorData.camp,
+        donor_camp: camps.find(c => c._id === donorData.camp)?.name || "",
         registration_date: new Date().toLocaleDateString()
       }
 
@@ -123,7 +105,7 @@ const DonorRegistration = () => {
     }
 
     try {
-     await axios.post('https://www.lifelinebloodcenter.org/api/donors', formData)
+      await axios.post('https://www.lifelinebloodcenter.org/api/donors', formData)
       await sendEmail(formData)
 
       alert('🎉 Registration successful! Check your email for confirmation.')
@@ -133,6 +115,7 @@ const DonorRegistration = () => {
       })
       setCalculatedAge(null)
     } catch (err) {
+      console.error(err)
       alert('❌ Error submitting form. Please try again.')
     }
   }
@@ -148,55 +131,53 @@ const DonorRegistration = () => {
           <h2 className="title">Donor Registration</h2>
           <p className="subtitle">Join our life-saving community</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="registration-form">
           <div className="form-group">
-            <input 
-              className="form-input" 
-              name="name" 
-              placeholder="Full Name" 
-              value={formData.name} 
-              onChange={handleChange} 
-              required 
+            <input
+              className="form-input"
+              name="name"
+              placeholder="Full Name"
+              value={formData.name}
+              onChange={handleChange}
+              required
             />
           </div>
 
-          {/* ✅ Date of Birth Input */}
           <div className="form-group">
             <label className="form-label">Date of Birth</label>
-            <input 
-              className="form-input" 
-              name="dob" 
-              type="date" 
-              value={formData.dob} 
-              onChange={handleChange} 
-              required 
+            <input
+              className="form-input"
+              name="dob"
+              type="date"
+              value={formData.dob}
+              onChange={handleChange}
+              required
             />
           </div>
 
-          {/* ✅ Show Age Preview */}
           {calculatedAge !== null && (
             <p className="age-preview">Calculated Age: {calculatedAge} years</p>
           )}
 
           <div className="form-group">
-            <input 
-              className="form-input" 
-              name="weight" 
-              type="number" 
-              placeholder="Weight (kg)" 
-              value={formData.weight} 
-              onChange={handleChange} 
-              required 
+            <input
+              className="form-input"
+              name="weight"
+              type="number"
+              placeholder="Weight (kg)"
+              value={formData.weight}
+              onChange={handleChange}
+              required
             />
           </div>
 
           <div className="form-group">
-            <select 
-              className="form-select" 
-              name="bloodGroup" 
-              value={formData.bloodGroup} 
-              onChange={handleChange} 
+            <select
+              className="form-select"
+              name="bloodGroup"
+              value={formData.bloodGroup}
+              onChange={handleChange}
               required
             >
               <option value="">Select Blood Group</option>
@@ -207,54 +188,61 @@ const DonorRegistration = () => {
           </div>
 
           <div className="form-group">
-            <input 
-              className="form-input" 
-              name="email" 
-              type="email" 
-              placeholder="Email Address" 
-              value={formData.email} 
-              onChange={handleChange} 
-              required 
+            <input
+              className="form-input"
+              name="email"
+              type="email"
+              placeholder="Email Address"
+              value={formData.email}
+              onChange={handleChange}
+              required
             />
           </div>
 
           <div className="form-group">
-            <input 
-              className="form-input" 
-              name="phone" 
-              placeholder="Phone Number" 
-              value={formData.phone} 
-              onChange={handleChange} 
-              required 
+            <input
+              className="form-input"
+              name="phone"
+              placeholder="Phone Number"
+              value={formData.phone}
+              onChange={handleChange}
+              required
             />
           </div>
 
           <div className="form-group">
-            <textarea 
-              className="form-textarea" 
-              name="address" 
-              placeholder="Address" 
-              value={formData.address} 
-              onChange={handleChange} 
-              required 
+            <textarea
+              className="form-textarea"
+              name="address"
+              placeholder="Address"
+              value={formData.address}
+              onChange={handleChange}
+              required
               rows="3"
             />
           </div>
 
           <div className="form-group">
-            <select 
-              className="form-select" 
-              name="camp" 
-              value={formData.camp} 
-              onChange={handleChange} 
-              required 
-              disabled={campLocked}
-            >
-              <option value="">Select Camp</option>
-              {camps.map(c => (
-                <option key={c._id} value={c.name}>{c.name}</option>
-              ))}
-            </select>
+            {campLocked ? (
+              <input
+                className="form-input"
+                value={camps.find(c => c._id === formData.camp)?.name || ""}
+                readOnly
+              />
+            ) : (
+              <select
+                className="form-select"
+                name="camp"
+                value={formData.camp}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select Camp</option>
+                {camps.map(c => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           <button className="submit-btn" type="submit">
