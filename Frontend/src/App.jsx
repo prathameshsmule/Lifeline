@@ -19,7 +19,7 @@ const App = () => {
         {/* Donor registration routes */}
         <Route path="/register" element={<DonorRegistration />} />
         {/* Optional: only if you want to use route params instead of query params */}
-        {/* <Route path="/register/:campId" element={<DonorRegistration />} /> */}
+         {/* <Route path="/register/:campId" element={<DonorRegistration />} /> 
 
         {/* Admin routes */}
         <Route path="/admin" element={<Admin />} />
