@@ -17,6 +17,7 @@ router.get('/', async (req, res) => {
   }
 });
 
+
 // Admin: create new camp (protected)
 router.post('/', verifyToken, async (req, res) => {
   try {
