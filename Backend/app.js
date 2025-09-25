@@ -13,11 +13,23 @@ dotenv.config()
 const app = express()
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://www.lifelinebloodcenter.org',
+  origin: function(origin, callback){
+    // allow requests with no origin (mobile apps, curl) or your frontend domains
+    const allowed = [
+      process.env.FRONTEND_URL,
+      'https://www.lifelinebloodcenter.org',
+      'https://lifelinebloodcenter.org',
+      'http://localhost:3000'
+    ];
+    if(!origin) return callback(null, true);
+    if(allowed.indexOf(origin) !== -1) return callback(null, true);
+    return callback(new Error('CORS not allowed by server'));
+  },
   methods: ['GET','POST','PUT','DELETE'],
   allowedHeaders: ['Content-Type','Authorization'],
   credentials: true
 }));
+
 
 app.use(express.json())
 
