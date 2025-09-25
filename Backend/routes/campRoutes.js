@@ -1,4 +1,3 @@
-// routes/campRoutes.js
 import express from 'express';
 import mongoose from 'mongoose';
 import Camp from '../models/Camp.js';
@@ -7,9 +6,7 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-/**
- * Public GET: list camps for registration page
- */
+// PUBLIC: List camps for registration page
 router.get('/public', async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: -1 });
@@ -19,9 +16,7 @@ router.get('/public', async (req, res) => {
   }
 });
 
-/**
- * Admin: create new camp (protected)
- */
+// ADMIN: Create new camp
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { name, location, date, organizerName, organizerContact, proName, hospitalName } = req.body;
@@ -38,9 +33,7 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-/**
- * Admin: list camps with donor counts (protected)
- */
+// ADMIN: List camps with donor count
 router.get('/with-count', verifyToken, async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 });
@@ -56,9 +49,7 @@ router.get('/with-count', verifyToken, async (req, res) => {
   }
 });
 
-/**
- * Admin: single camp (protected)
- */
+// ADMIN: Single camp by ID
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
