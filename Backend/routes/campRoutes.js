@@ -19,6 +19,20 @@ router.get('/public', async (req, res) => {
   }
 });
 
+// ✅ Get All Camps with donor count (and coupons included)
+router.get('/', async (req, res) => {
+  try {
+    const camps = await Camp.find().sort({ date: 1 })
+
+    // Aggregate donor counts per camp
+    const donorCounts = await Donor.aggregate([
+      {
+        $group: {
+          _id: '$camp',
+          count: { $sum: 1 }
+        }
+      }
+    ])
 // === Admin Routes (Protected) ===
 
 // Create new camp
