@@ -15,8 +15,6 @@ const DonorRegistration = () => {
     email: '', phone: '', address: '', camp: ''
   })
 
-  const [camps, setCamps] = useState([])
-  const [campLocked, setCampLocked] = useState(false)
   const [calculatedAge, setCalculatedAge] = useState(null)
 
   // Initialize EmailJS
@@ -24,20 +22,17 @@ const DonorRegistration = () => {
     emailjs.init('NtoYnRvbn1y7ywGKq')
   }, [])
 
-  // Fetch camps and set camp if QR/link used
+  // Fetch camp name from campId
   useEffect(() => {
-    axios.get('https://www.lifelinebloodcenter.org/api/camps')
-      .then(res => {
-        setCamps(res.data)
-        if (campIdFromUrl) {
-          const selectedCamp = res.data.find(c => c._id === campIdFromUrl)
-          if (selectedCamp) {
-            setFormData(prev => ({ ...prev, camp: selectedCamp.name }))
-            setCampLocked(true) // Lock camp field
-          }
-        }
-      })
-      .catch(() => setCamps([]))
+    if (campIdFromUrl) {
+      axios.get(`https://www.lifelinebloodcenter.org/api/camps/${campIdFromUrl}`)
+        .then(res => {
+          setFormData(prev => ({ ...prev, camp: res.data.name }))
+        })
+        .catch(() => {
+          setFormData(prev => ({ ...prev, camp: '' }))
+        })
+    }
   }, [campIdFromUrl])
 
   // Calculate age from DOB
@@ -111,7 +106,7 @@ const DonorRegistration = () => {
 
       setFormData({
         name: '', dob: '', weight: '', bloodGroup: '',
-        email: '', phone: '', address: '', camp: campLocked ? formData.camp : ''
+        email: '', phone: '', address: '', camp: formData.camp
       })
       setCalculatedAge(null)
     } catch (err) {
@@ -151,12 +146,10 @@ const DonorRegistration = () => {
           <input className="form-input" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} required />
           <textarea className="form-textarea" name="address" placeholder="Address" value={formData.address} onChange={handleChange} required rows="3" />
 
-          <select className="form-select" name="camp" value={formData.camp} onChange={handleChange} required disabled={campLocked}>
-            <option value="">{campLocked ? formData.camp : 'Select Camp'}</option>
-            {!campLocked && camps.map(c => (
-              <option key={c._id} value={c.name}>{c.name}</option>
-            ))}
-          </select>
+          {/* Display camp name as read-only */}
+          {formData.camp && (
+            <p className="form-label"><strong>Camp:</strong> {formData.camp}</p>
+          )}
 
           <button className="submit-btn" type="submit">
             <span className="btn-text">Register as Donor</span>
