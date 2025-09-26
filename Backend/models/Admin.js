@@ -12,7 +12,7 @@ export const initializeAdmin = async () => {
   try {
     const lifelineAdmin = await Admin.findOne({ email: 'lifelinebloodcenter26@gmail.com' });
     if (!lifelineAdmin) {
-      const hashedPassword = await bcrypt.hash('lifeline@org', 10); // Hash the actual password
+      const hashedPassword = await bcrypt.hash('lifeline@123', 10); // Hash the actual password
       await Admin.create({ 
         email: 'lifelinebloodcenter26@gmail.com', // Correct email
         password: hashedPassword 
