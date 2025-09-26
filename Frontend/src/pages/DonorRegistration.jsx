@@ -27,7 +27,8 @@ const DonorRegistration = () => {
   useEffect(() => {
     const fetchCamps = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/camps/public`);
+        const res = await axios.get(`https://lifelinebloodcenter.org/api/camps/public
+`);
         setCamps(res.data);
       } catch (err) {
         console.error(err);
