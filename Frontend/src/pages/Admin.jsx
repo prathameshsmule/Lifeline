@@ -19,13 +19,26 @@ const Admin = () => {
 
   const [loadingDonors, setLoadingDonors] = useState(false);
   const [loadingCamps, setLoadingCamps] = useState(false);
+
+  // Donor inline edit
   const [editDonorId, setEditDonorId] = useState(null);
   const [editForm, setEditForm] = useState({});
+
+  // Add Camp form
   const [newCamp, setNewCamp] = useState({
     name: "", location: "", date: "",
     organizerName: "", organizerContact: "",
     proName: "", hospitalName: "",
   });
+
+  // Camp EDIT (Modal) state
+  const [editCampId, setEditCampId] = useState(null);
+  const [editCampForm, setEditCampForm] = useState({
+    name: "", location: "", date: "",
+    organizerName: "", organizerContact: "",
+    proName: "", hospitalName: "",
+  });
+  const isEditModalOpen = Boolean(editCampId);
 
   const navigate = useNavigate();
   const token = localStorage.getItem("admin-token");
@@ -78,6 +91,66 @@ const Admin = () => {
     } catch (err) {
       console.error(err.response || err);
       alert(err?.response?.data?.message || "Error adding camp.");
+    }
+  };
+
+  // ========== Camp Edit (Modal) ==========
+  const startEditCamp = (camp) => {
+    setEditCampId(camp._id);
+    setEditCampForm({
+      name: camp.name || "",
+      location: camp.location || "",
+      date: camp.date ? new Date(camp.date).toISOString().slice(0, 10) : "",
+      organizerName: camp.organizerName || "",
+      organizerContact: camp.organizerContact || "",
+      proName: camp.proName || "",
+      hospitalName: camp.hospitalName || "",
+    });
+  };
+
+  const handleEditCampChange = (e) => {
+    const { name, value } = e.target;
+    setEditCampForm((f) => ({ ...f, [name]: value }));
+  };
+
+  const cancelEditCamp = () => {
+    setEditCampId(null);
+    setEditCampForm({
+      name: "", location: "", date: "",
+      organizerName: "", organizerContact: "",
+      proName: "", hospitalName: "",
+    });
+  };
+
+  const saveCampEdits = async () => {
+    if (!editCampId) return;
+    try {
+      const payload = { ...editCampForm };
+      // Avoid overwriting with empty strings
+      Object.keys(payload).forEach((k) => payload[k] === "" && delete payload[k]);
+
+      const res = await axios.put(`${API_BASE}/camps/${editCampId}`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const updated = res.data?.camp || null;
+      if (updated) {
+        setCamps((prev) =>
+          prev.map((c) =>
+            c._id === editCampId
+              ? { ...c, ...updated, donorCount: typeof updated.donorCount === "number" ? updated.donorCount : c.donorCount }
+              : c
+          )
+        );
+      } else {
+        await fetchCamps();
+      }
+
+      cancelEditCamp();
+      alert("Camp updated successfully!");
+    } catch (err) {
+      console.error(err.response || err);
+      alert(err?.response?.data?.message || "Error updating camp");
     }
   };
 
@@ -208,6 +281,7 @@ const Admin = () => {
                 value={newCamp[field]}
                 onChange={handleNewCampChange}
                 required={field === "name"}
+                disabled={isEditModalOpen}
               />
             </div>
           ))}
@@ -218,6 +292,7 @@ const Admin = () => {
               value={newCamp.hospitalName}
               onChange={handleNewCampChange}
               required
+              disabled={isEditModalOpen}
             >
               <option value="">Select Hospital</option>
               {["Apollo Hospital","Fortis Hospital","AIIMS","Nanavati Hospital","Tata Memorial Hospital","Other"].map((h, i) => (
@@ -226,7 +301,7 @@ const Admin = () => {
             </select>
           </div>
         </div>
-        <button type="submit" className="btn btn-primary mt-3">Add Camp</button>
+        <button type="submit" className="btn btn-primary mt-3" disabled={isEditModalOpen}>Add Camp</button>
       </form>
 
       {/* Camp Filters */}
@@ -253,7 +328,7 @@ const Admin = () => {
         </div>
       </div>
 
-      {/* Camp Cards (NO Delete Camp button) */}
+      {/* Camp Cards */}
       {loadingCamps ? (
         <p>Loading camps...</p>
       ) : (
@@ -301,6 +376,12 @@ const Admin = () => {
                     >
                       {showQR[camp._id] ? "Hide QR" : "Show QR"}
                     </button>
+                    <button
+                      className="btn btn-sm btn-outline-warning"
+                      onClick={() => startEditCamp(camp)}
+                    >
+                      Edit
+                    </button>
                   </div>
 
                   {showQR[camp._id] && (
@@ -322,7 +403,7 @@ const Admin = () => {
         </div>
       )}
 
-      {/* Donor Table (Delete donor stays) */}
+      {/* Donor Table */}
       {selectedCamp && (
         <div className="mt-5 admin-card border p-3 rounded">
           <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -443,6 +524,112 @@ const Admin = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* ===== Edit Camp Modal (controlled, no external JS needed) ===== */}
+      {isEditModalOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="modal-backdrop fade show"
+            style={{ zIndex: 1040 }}
+            onClick={cancelEditCamp}
+          />
+          {/* Modal */}
+          <div
+            className="modal fade show"
+            role="dialog"
+            style={{ display: "block", zIndex: 1050 }}
+            aria-modal="true"
+          >
+            <div className="modal-dialog modal-lg modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Edit Camp</h5>
+                  <button type="button" className="btn-close" onClick={cancelEditCamp} aria-label="Close"></button>
+                </div>
+                <div className="modal-body">
+                  <div className="row g-3">
+                    <div className="col-md-6">
+                      <label className="form-label">Camp Name</label>
+                      <input
+                        className="form-control"
+                        name="name"
+                        value={editCampForm.name}
+                        onChange={handleEditCampChange}
+                        required
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">Location</label>
+                      <input
+                        className="form-control"
+                        name="location"
+                        value={editCampForm.location}
+                        onChange={handleEditCampChange}
+                      />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label">Date</label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        name="date"
+                        value={editCampForm.date}
+                        onChange={handleEditCampChange}
+                      />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label">Organizer Name</label>
+                      <input
+                        className="form-control"
+                        name="organizerName"
+                        value={editCampForm.organizerName}
+                        onChange={handleEditCampChange}
+                      />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label">Organizer Contact</label>
+                      <input
+                        className="form-control"
+                        name="organizerContact"
+                        value={editCampForm.organizerContact}
+                        onChange={handleEditCampChange}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">PRO Name</label>
+                      <input
+                        className="form-control"
+                        name="proName"
+                        value={editCampForm.proName}
+                        onChange={handleEditCampChange}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">Hospital</label>
+                      <select
+                        className="form-select"
+                        name="hospitalName"
+                        value={editCampForm.hospitalName}
+                        onChange={handleEditCampChange}
+                      >
+                        <option value="">Select Hospital</option>
+                        {["Apollo Hospital","Fortis Hospital","AIIMS","Nanavati Hospital","Tata Memorial Hospital","Other"].map((h, i) => (
+                          <option key={i} value={h}>{h}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-secondary" onClick={cancelEditCamp}>Cancel</button>
+                  <button className="btn btn-success" onClick={saveCampEdits}>Save Changes</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
