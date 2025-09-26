@@ -19,8 +19,6 @@ app.use(cors({
   credentials: true
 }));
 
-app.options('/api/camps/:id', cors());
-app.options('/api/camps/:id/delete', cors());
 
 app.use(express.json())
 
