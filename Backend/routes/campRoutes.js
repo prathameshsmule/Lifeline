@@ -38,22 +38,21 @@ router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 1) Validate ObjectId
+    // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid Camp ID' });
     }
 
-    // 2) Ensure the camp exists
+    // Ensure the camp exists
     const camp = await Camp.findById(id);
     if (!camp) {
       return res.status(404).json({ message: 'Camp not found' });
     }
 
-    // 3) (Optional but recommended) remove donors tied to this camp
-    //    If you want to keep donors, comment this out.
+    // Optional cascade: remove donors tied to this camp
     await Donor.deleteMany({ camp: id });
 
-    // 4) Delete the camp
+    // Delete the camp
     await Camp.findByIdAndDelete(id);
 
     return res.json({ message: 'Camp deleted successfully' });
@@ -61,7 +60,6 @@ router.delete('/:id', verifyToken, async (req, res) => {
     return res.status(500).json({ message: 'Error deleting camp', error: err.message });
   }
 });
-
 
 // Admin: All camps with donor counts
 router.get('/with-count', verifyToken, async (req, res) => {
@@ -94,15 +92,5 @@ router.get('/:id', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Error fetching camp', error: err.message });
   }
 });
-// BEFORE (protected)
-router.get('/', verifyToken, async (req, res) => {
-  try {
-    const camps = await Camp.find().sort({ date: -1 });s
-    res.json(camps);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching camps', error: err.message });
-  }
-});
-
 
 export default router;
