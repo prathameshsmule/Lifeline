@@ -13,7 +13,7 @@ const Admin = () => {
   const [selectedCamp, setSelectedCamp] = useState(null);
   const [showQR, setShowQR] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [campSearch, setCampSearch] = useState(""); // ✅ new: search camps
+  const [campSearch, setCampSearch] = useState("");
   const [loadingDonors, setLoadingDonors] = useState(false);
   const [loadingCamps, setLoadingCamps] = useState(false);
   const [editDonorId, setEditDonorId] = useState(null);
@@ -34,11 +34,13 @@ const Admin = () => {
   useEffect(() => {
     if (!token) return navigate("/admin-login");
     fetchCamps();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (selectedCamp) fetchDonors();
-  }, [selectedCamp]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCamp]);
 
   // Camps WITH donor counts
   const fetchCamps = async () => {
@@ -98,7 +100,7 @@ const Admin = () => {
         proName: "",
         hospitalName: "",
       });
-      await fetchCamps(); // refresh with counts
+      await fetchCamps();
       alert("Camp added successfully!");
     } catch (err) {
       console.error(err.response || err);
@@ -106,24 +108,40 @@ const Admin = () => {
     }
   };
 
-  // ✅ NEW: Delete a camp
+  // Delete a camp — try DELETE first, then fallback POST
   const handleDeleteCamp = async (id) => {
     if (!window.confirm("Are you sure you want to delete this camp?")) return;
     try {
       await axios.delete(`${API_BASE}/camps/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // if the currently selected camp was deleted, clear the selection
-      if (selectedCamp === id) {
-        setSelectedCamp(null);
-        setDonors([]);
-      }
-      await fetchCamps();
-      alert("Camp deleted successfully!");
     } catch (err) {
-      console.error(err.response || err);
-      alert("Error deleting camp");
+      const status = err?.response?.status;
+      // If the host/proxy blocks DELETE or doesn't route it (404/405),
+      // try the fallback POST /:id/delete
+      if (status === 404 || status === 405) {
+        try {
+          await axios.post(`${API_BASE}/camps/${id}/delete`, null, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch (fallbackErr) {
+          console.error(fallbackErr.response || fallbackErr);
+          alert("Error deleting camp");
+          return;
+        }
+      } else {
+        console.error(err.response || err);
+        alert("Error deleting camp");
+        return;
+      }
     }
+
+    if (selectedCamp === id) {
+      setSelectedCamp(null);
+      setDonors([]);
+    }
+    await fetchCamps();
+    alert("Camp deleted successfully!");
   };
 
   const handleDeleteDonor = async (id) => {
@@ -132,8 +150,8 @@ const Admin = () => {
       await axios.delete(`${API_BASE}/donors/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      await fetchDonors(); // refresh donor table
-      await fetchCamps();  // refresh counts
+      await fetchDonors();
+      await fetchCamps();
       alert("Donor deleted successfully!");
     } catch (err) {
       console.error(err.response || err);
@@ -202,7 +220,6 @@ const Admin = () => {
     `${d.name} ${d.bloodGroup} ${d.phone}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // ✅ live filter for camp cards
   const filteredCamps = camps.filter((c) =>
     c.name?.toLowerCase().includes(campSearch.toLowerCase())
   );
@@ -260,7 +277,7 @@ const Admin = () => {
         <button type="submit" className="btn btn-primary mt-3">Add Camp</button>
       </form>
 
-      {/* ✅ Camp Search */}
+      {/* Camp Search */}
       <div className="mb-3">
         <input
           className="form-control"
@@ -310,7 +327,6 @@ const Admin = () => {
                     >
                       {showQR[camp._id] ? "Hide QR" : "Show QR"}
                     </button>
-                    {/* ✅ Delete Camp */}
                     <button
                       className="btn btn-sm btn-outline-danger"
                       onClick={() => handleDeleteCamp(camp._id)}
