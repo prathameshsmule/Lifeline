@@ -13,6 +13,7 @@ const Admin = () => {
   const [selectedCamp, setSelectedCamp] = useState(null);
   const [showQR, setShowQR] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [campSearch, setCampSearch] = useState(""); // ✅ new: search camps
   const [loadingDonors, setLoadingDonors] = useState(false);
   const [loadingCamps, setLoadingCamps] = useState(false);
   const [editDonorId, setEditDonorId] = useState(null);
@@ -39,7 +40,7 @@ const Admin = () => {
     if (selectedCamp) fetchDonors();
   }, [selectedCamp]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ✅ Fetch all camps WITH donor counts
+  // Camps WITH donor counts
   const fetchCamps = async () => {
     setLoadingCamps(true);
     try {
@@ -56,7 +57,7 @@ const Admin = () => {
     }
   };
 
-  // Fetch donors for selected camp
+  // Donors for selected camp
   const fetchDonors = async () => {
     setLoadingDonors(true);
     try {
@@ -97,11 +98,31 @@ const Admin = () => {
         proName: "",
         hospitalName: "",
       });
-      await fetchCamps(); // refresh list (with counts)
+      await fetchCamps(); // refresh with counts
       alert("Camp added successfully!");
     } catch (err) {
       console.error(err.response || err);
       alert("Error adding camp.");
+    }
+  };
+
+  // ✅ NEW: Delete a camp
+  const handleDeleteCamp = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this camp?")) return;
+    try {
+      await axios.delete(`${API_BASE}/camps/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // if the currently selected camp was deleted, clear the selection
+      if (selectedCamp === id) {
+        setSelectedCamp(null);
+        setDonors([]);
+      }
+      await fetchCamps();
+      alert("Camp deleted successfully!");
+    } catch (err) {
+      console.error(err.response || err);
+      alert("Error deleting camp");
     }
   };
 
@@ -112,7 +133,7 @@ const Admin = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       await fetchDonors(); // refresh donor table
-      await fetchCamps();  // ✅ refresh counts on cards
+      await fetchCamps();  // refresh counts
       alert("Donor deleted successfully!");
     } catch (err) {
       console.error(err.response || err);
@@ -136,7 +157,6 @@ const Admin = () => {
       });
       setDonors((prev) => prev.map((d) => (d._id === id ? { ...editForm } : d)));
       setEditDonorId(null);
-      // count doesn't change on edit, no need to refetch camps
     } catch (err) {
       console.error(err.response || err);
       alert("Error saving donor update");
@@ -179,9 +199,12 @@ const Admin = () => {
   };
 
   const filteredDonors = donors.filter((d) =>
-    `${d.name} ${d.bloodGroup} ${d.phone}`
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
+    `${d.name} ${d.bloodGroup} ${d.phone}`.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // ✅ live filter for camp cards
+  const filteredCamps = camps.filter((c) =>
+    c.name?.toLowerCase().includes(campSearch.toLowerCase())
   );
 
   return (
@@ -199,30 +222,26 @@ const Admin = () => {
         }}
       >
         <h2 className="text-danger mb-0">Camps</h2>
-        <button className="btn btn-danger" onClick={handleLogout}>
-          Logout
-        </button>
+        <button className="btn btn-danger" onClick={handleLogout}>Logout</button>
       </div>
 
       {/* Add Camp Form */}
       <form onSubmit={handleNewCampSubmit} className="border p-3 rounded mb-4 bg-light">
         <h5>Add New Camp</h5>
         <div className="row g-2">
-          {["name", "location", "date", "organizerName", "organizerContact", "proName"].map(
-            (field, idx) => (
-              <div className="col-md-4" key={idx}>
-                <input
-                  className="form-control"
-                  type={field === "date" ? "date" : "text"}
-                  name={field}
-                  placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-                  value={newCamp[field]}
-                  onChange={handleNewCampChange}
-                  required={field === "name"}
-                />
-              </div>
-            )
-          )}
+          {["name","location","date","organizerName","organizerContact","proName"].map((field, idx) => (
+            <div className="col-md-4" key={idx}>
+              <input
+                className="form-control"
+                type={field === "date" ? "date" : "text"}
+                name={field}
+                placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+                value={newCamp[field]}
+                onChange={handleNewCampChange}
+                required={field === "name"}
+              />
+            </div>
+          ))}
           <div className="col-md-4">
             <select
               className="form-select"
@@ -232,98 +251,91 @@ const Admin = () => {
               required
             >
               <option value="">Select Hospital</option>
-              {[
-                "Apollo Hospital",
-                "Fortis Hospital",
-                "AIIMS",
-                "Nanavati Hospital",
-                "Tata Memorial Hospital",
-                "Other",
-              ].map((h, i) => (
-                <option key={i} value={h}>
-                  {h}
-                </option>
+              {["Apollo Hospital","Fortis Hospital","AIIMS","Nanavati Hospital","Tata Memorial Hospital","Other"].map((h, i) => (
+                <option key={i} value={h}>{h}</option>
               ))}
             </select>
           </div>
         </div>
-        <button type="submit" className="btn btn-primary mt-3">
-          Add Camp
-        </button>
+        <button type="submit" className="btn btn-primary mt-3">Add Camp</button>
       </form>
+
+      {/* ✅ Camp Search */}
+      <div className="mb-3">
+        <input
+          className="form-control"
+          placeholder="Search camps by name..."
+          value={campSearch}
+          onChange={(e) => setCampSearch(e.target.value)}
+        />
+      </div>
 
       {/* Camp Cards */}
       {loadingCamps ? (
         <p>Loading camps...</p>
       ) : (
         <div className="row g-3">
-          {camps.map((camp) => (
+          {filteredCamps.map((camp) => (
             <div key={camp._id} className="col-md-4">
               <div className="card h-100">
                 <div className="card-body">
                   <h5 className="card-title text-danger">{camp.name}</h5>
                   <p className="card-text">
-                    <strong>Location:</strong> {camp.location || "N/A"}
-                    <br />
-                    <strong>Date:</strong>{" "}
-                    {camp.date ? new Date(camp.date).toLocaleDateString() : "N/A"}
-                    <br />
-                    <strong>Organizer:</strong> {camp.organizerName || "N/A"}
-                    <br />
-                    <strong>Contact:</strong> {camp.organizerContact || "N/A"}
-                    <br />
-                    <strong>PRO:</strong> {camp.proName || "N/A"}
-                    <br />
-                    <strong>Hospital:</strong> {camp.hospitalName || "N/A"}
-                    <br />
-                    <strong>Donors Registered:</strong>{" "}
-                    {typeof camp.donorCount === "number" ? camp.donorCount : 0}
+                    <strong>Location:</strong> {camp.location || "N/A"}<br/>
+                    <strong>Date:</strong> {camp.date ? new Date(camp.date).toLocaleDateString() : "N/A"}<br/>
+                    <strong>Organizer:</strong> {camp.organizerName || "N/A"}<br/>
+                    <strong>Contact:</strong> {camp.organizerContact || "N/A"}<br/>
+                    <strong>PRO:</strong> {camp.proName || "N/A"}<br/>
+                    <strong>Hospital:</strong> {camp.hospitalName || "N/A"}<br/>
+                    <strong>Donors Registered:</strong> {typeof camp.donorCount === "number" ? camp.donorCount : 0}
                   </p>
-                  <button
-                    className="btn btn-outline-danger btn-sm me-2"
-                    onClick={() => setSelectedCamp(camp._id)}
-                  >
-                    View Donors
-                  </button>
-                  <button
-                    className="btn btn-sm btn-outline-primary me-2"
-                    onClick={() => {
-                      const link = `${window.location.origin}/register?campId=${camp._id}`;
-                      navigator.clipboard.writeText(link);
-                      alert(`✅ Registration link copied:\n${link}`);
-                    }}
-                  >
-                    Copy Registration Link
-                  </button>
-                  <button
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={() =>
-                      setShowQR((prev) => ({ ...prev, [camp._id]: !prev[camp._id] }))
-                    }
-                  >
-                    {showQR[camp._id] ? "Hide QR" : "Show QR"}
-                  </button>
+
+                  <div className="d-flex flex-wrap gap-2">
+                    <button className="btn btn-outline-danger btn-sm" onClick={() => setSelectedCamp(camp._id)}>
+                      View Donors
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline-primary"
+                      onClick={() => {
+                        const link = `${window.location.origin}/register?campId=${camp._id}`;
+                        navigator.clipboard.writeText(link);
+                        alert(`✅ Registration link copied:\n${link}`);
+                      }}
+                    >
+                      Copy Registration Link
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline-secondary"
+                      onClick={() => setShowQR((prev) => ({ ...prev, [camp._id]: !prev[camp._id] }))}
+                    >
+                      {showQR[camp._id] ? "Hide QR" : "Show QR"}
+                    </button>
+                    {/* ✅ Delete Camp */}
+                    <button
+                      className="btn btn-sm btn-outline-danger"
+                      onClick={() => handleDeleteCamp(camp._id)}
+                    >
+                      Delete Camp
+                    </button>
+                  </div>
+
                   {showQR[camp._id] && (
                     <div className="mt-2">
-                      <QRCodeCanvas
-                        value={`${window.location.origin}/register?campId=${camp._id}`}
-                        size={128}
-                      />
+                      <QRCodeCanvas value={`${window.location.origin}/register?campId=${camp._id}`} size={128}/>
                     </div>
                   )}
                 </div>
               </div>
             </div>
           ))}
+          {filteredCamps.length === 0 && <p className="px-2">No camps match your search.</p>}
         </div>
       )}
 
       {/* Donor Table */}
       {selectedCamp && (
         <div className="mt-5">
-          <h4 className="text-danger">
-            Donors for Camp: {camps.find((c) => c._id === selectedCamp)?.name || ""}
-          </h4>
+          <h4 className="text-danger">Donors for Camp: {camps.find(c => c._id === selectedCamp)?.name || ""}</h4>
           <input
             type="text"
             className="form-control mb-3"
@@ -331,198 +343,62 @@ const Admin = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button className="btn btn-success mb-3" onClick={downloadPDF}>
-            Download PDF
-          </button>
+          <button className="btn btn-success mb-3" onClick={downloadPDF}>Download PDF</button>
 
-          {loadingDonors ? (
-            <p>Loading donors...</p>
-          ) : (
+          {loadingDonors ? <p>Loading donors...</p> : (
             <div className="table-responsive">
               <table className="table table-bordered table-hover text-center align-middle">
                 <thead className="table-danger">
                   <tr>
-                    {[
-                      "#",
-                      "Name",
-                      "Blood Group",
-                      "Age",
-                      "Weight (kg)",
-                      "Email",
-                      "Phone",
-                      "Address",
-                      "Remark",
-                      "Action",
-                    ].map((h, i) => (
-                      <th key={i}>{h}</th>
-                    ))}
+                    {["#","Name","Blood Group","Age","Weight (kg)","Email","Phone","Address","Remark","Action"].map((h,i)=><th key={i}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredDonors.length === 0 ? (
-                    <tr>
-                      <td colSpan="10">No donor data available.</td>
+                    <tr><td colSpan="10">No donor data available.</td></tr>
+                  ) : filteredDonors.map((donor,index) => (
+                    <tr key={donor._id}>
+                      <td>{index + 1}</td>
+                      <td>{editDonorId === donor._id ? <input className="form-control form-control-sm" name="name" value={editForm.name} onChange={handleEditChange}/> : donor.name}</td>
+                      <td>{editDonorId === donor._id ? (
+                        <select className="form-select form-select-sm" name="bloodGroup" value={editForm.bloodGroup} onChange={handleEditChange}>
+                          <option value="">Select</option>
+                          {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+                        </select>
+                      ) : donor.bloodGroup}</td>
+                      <td>{editDonorId === donor._id ? <input className="form-control form-control-sm" name="age" value={editForm.age} onChange={handleEditChange}/> : donor.age}</td>
+                      <td>{editDonorId === donor._id ? <input className="form-control form-control-sm" name="weight" value={editForm.weight} onChange={handleEditChange}/> : donor.weight}</td>
+                      <td>{editDonorId === donor._id ? <input className="form-control form-control-sm" name="email" value={editForm.email} onChange={handleEditChange}/> : donor.email}</td>
+                      <td>{editDonorId === donor._id ? <input className="form-control form-control-sm" name="phone" value={editForm.phone} onChange={handleEditChange}/> : donor.phone}</td>
+                      <td>{editDonorId === donor._id ? <input className="form-control form-control-sm" name="address" value={editForm.address} onChange={handleEditChange}/> : donor.address}</td>
+                      <td>
+                        <select className="form-select form-select-sm" value={donor.remark || ""} onChange={async e => {
+                          const remark = e.target.value;
+                          try {
+                            await axios.put(`${API_BASE}/donors/${donor._id}`, { remark }, { headers: { Authorization: `Bearer ${token}` } });
+                            setDonors(prev => prev.map(d => d._id === donor._id ? { ...d, remark } : d));
+                          } catch { alert("Error updating remark"); }
+                        }}>
+                          <option value="">Select</option>
+                          <option value="Donation Done">Donation Done</option>
+                          <option value="Not Done">Not Done</option>
+                        </select>
+                      </td>
+                      <td>
+                        {editDonorId === donor._id ? (
+                          <>
+                            <button className="btn btn-sm btn-success me-2" onClick={() => handleEditSave(donor._id)}>Save</button>
+                            <button className="btn btn-sm btn-secondary" onClick={() => setEditDonorId(null)}>Cancel</button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="btn btn-sm btn-warning me-2" onClick={() => handleEditClick(donor)}>Edit</button>
+                            <button className="btn btn-sm btn-danger" onClick={() => handleDeleteDonor(donor._id)}>Delete</button>
+                          </>
+                        )}
+                      </td>
                     </tr>
-                  ) : (
-                    filteredDonors.map((donor, index) => (
-                      <tr key={donor._id}>
-                        <td>{index + 1}</td>
-                        <td>
-                          {editDonorId === donor._id ? (
-                            <input
-                              className="form-control form-control-sm"
-                              name="name"
-                              value={editForm.name}
-                              onChange={handleEditChange}
-                            />
-                          ) : (
-                            donor.name
-                          )}
-                        </td>
-                        <td>
-                          {editDonorId === donor._id ? (
-                            <select
-                              className="form-select form-select-sm"
-                              name="bloodGroup"
-                              value={editForm.bloodGroup}
-                              onChange={handleEditChange}
-                            >
-                              <option value="">Select</option>
-                              {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(
-                                (bg) => (
-                                  <option key={bg} value={bg}>
-                                    {bg}
-                                  </option>
-                                )
-                              )}
-                            </select>
-                          ) : (
-                            donor.bloodGroup
-                          )}
-                        </td>
-                        <td>
-                          {editDonorId === donor._id ? (
-                            <input
-                              className="form-control form-control-sm"
-                              name="age"
-                              value={editForm.age}
-                              onChange={handleEditChange}
-                            />
-                          ) : (
-                            donor.age
-                          )}
-                        </td>
-                        <td>
-                          {editDonorId === donor._id ? (
-                            <input
-                              className="form-control form-control-sm"
-                              name="weight"
-                              value={editForm.weight}
-                              onChange={handleEditChange}
-                            />
-                          ) : (
-                            donor.weight
-                          )}
-                        </td>
-                        <td>
-                          {editDonorId === donor._id ? (
-                            <input
-                              className="form-control form-control-sm"
-                              name="email"
-                              value={editForm.email}
-                              onChange={handleEditChange}
-                            />
-                          ) : (
-                            donor.email
-                          )}
-                        </td>
-                        <td>
-                          {editDonorId === donor._id ? (
-                            <input
-                              className="form-control form-control-sm"
-                              name="phone"
-                              value={editForm.phone}
-                              onChange={handleEditChange}
-                            />
-                          ) : (
-                            donor.phone
-                          )}
-                        </td>
-                        <td>
-                          {editDonorId === donor._id ? (
-                            <input
-                              className="form-control form-control-sm"
-                              name="address"
-                              value={editForm.address}
-                              onChange={handleEditChange}
-                            />
-                          ) : (
-                            donor.address
-                          )}
-                        </td>
-                        <td>
-                          <select
-                            className="form-select form-select-sm"
-                            value={donor.remark || ""}
-                            onChange={async (e) => {
-                              const remark = e.target.value;
-                              try {
-                                await axios.put(
-                                  `${API_BASE}/donors/${donor._id}`,
-                                  { remark },
-                                  { headers: { Authorization: `Bearer ${token}` } }
-                                );
-                                setDonors((prev) =>
-                                  prev.map((d) =>
-                                    d._id === donor._id ? { ...d, remark } : d
-                                  )
-                                );
-                              } catch {
-                                alert("Error updating remark");
-                              }
-                            }}
-                          >
-                            <option value="">Select</option>
-                            <option value="Donation Done">Donation Done</option>
-                            <option value="Not Done">Not Done</option>
-                          </select>
-                        </td>
-                        <td>
-                          {editDonorId === donor._id ? (
-                            <>
-                              <button
-                                className="btn btn-sm btn-success me-2"
-                                onClick={() => handleEditSave(donor._id)}
-                              >
-                                Save
-                              </button>
-                              <button
-                                className="btn btn-sm btn-secondary"
-                                onClick={() => setEditDonorId(null)}
-                              >
-                                Cancel
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                className="btn btn-sm btn-warning me-2"
-                                onClick={() => handleEditClick(donor)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="btn btn-sm btn-danger"
-                                onClick={() => handleDeleteDonor(donor._id)}
-                              >
-                                Delete
-                              </button>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
