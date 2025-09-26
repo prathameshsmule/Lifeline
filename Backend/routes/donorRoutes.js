@@ -1,108 +1,65 @@
 import express from 'express'
+import mongoose from 'mongoose'
 import Donor from '../models/Donor.js'
 import { verifyToken } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-// ✅ Helper: Calculate age from DOB
-const calculateAge = (dob) => {
-  const birthDate = new Date(dob)
-  const today = new Date()
-  let age = today.getFullYear() - birthDate.getFullYear()
-  const m = today.getMonth() - birthDate.getMonth()
-  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-    age--
-  }
-  return age
-}
-
-// ✅ Register Donor
-router.post('/', async (req, res) => {
-  try {
-    const { name, dob, weight, bloodGroup, email, phone, address, camp } = req.body
-
-    const age = calculateAge(dob)
-
-    if (age < 18) return res.status(400).json({ message: 'Age must be 18 or above' })
-    if (weight < 50) return res.status(400).json({ message: 'Minimum weight must be 50kg' })
-    if (!camp) return res.status(400).json({ message: 'Camp is required' })
-
-    const donor = new Donor({
-      name,
-      dob,
-      age,
-      weight,
-      bloodGroup,
-      email,
-      phone,
-      address,
-      camp // ✅ should be campId (_id)
-    })
-
-    await donor.save()
-    res.status(201).json({ message: 'Donor registered successfully', donor })
-  } catch (error) {
-    res.status(500).json({ message: 'Error registering donor', error: error.message })
-  }
-})
-
-// ✅ Get All Donors
-router.get('/', verifyToken, async (req, res) => {
-  try {
-    const donors = await Donor.find()
-      .populate('camp', 'name location date') // ✅ optional: show camp details
-      .sort({ createdAt: -1 })
-
-    res.json(donors)
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching donors', error: error.message })
-  }
-})
-
-// ✅ Get Donors by CampId
+// ✅ Get donors by camp
 router.get('/camp/:campId', verifyToken, async (req, res) => {
   try {
     const { campId } = req.params
-    const donors = await Donor.find({ camp: campId })
-      .populate('camp', 'name location date')
-      .sort({ createdAt: -1 })
+    if (!mongoose.Types.ObjectId.isValid(campId)) return res.status(400).json({ message: 'Invalid Camp ID' })
 
+    const donors = await Donor.find({ camp: campId }).sort({ name: 1 }) // Sort alphabetically
     res.json(donors)
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching donors by camp', error: error.message })
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching donors', error: err.message })
   }
 })
 
-// ✅ Update Donor
+// ✅ Update donor (remark or other fields)
 router.put('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params
-    const updateFields = { ...req.body }
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid Donor ID' })
 
-    if (updateFields.dob) {
-      updateFields.age = calculateAge(updateFields.dob)
-    }
+    const donor = await Donor.findByIdAndUpdate(id, req.body, { new: true })
+    if (!donor) return res.status(404).json({ message: 'Donor not found' })
 
-    const updatedDonor = await Donor.findByIdAndUpdate(id, updateFields, { new: true })
-
-    if (!updatedDonor) return res.status(404).json({ message: 'Donor not found' })
-
-    res.json({ message: 'Donor updated successfully', donor: updatedDonor })
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating donor', error: error.message })
+    res.json({ message: 'Donor updated successfully', donor })
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating donor', error: err.message })
   }
 })
 
-// ✅ Delete Donor
+// ✅ Delete donor
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params
-    const deleted = await Donor.findByIdAndDelete(id)
-    if (!deleted) return res.status(404).json({ message: 'Donor not found' })
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid Donor ID' })
+
+    const donor = await Donor.findByIdAndDelete(id)
+    if (!donor) return res.status(404).json({ message: 'Donor not found' })
 
     res.json({ message: 'Donor deleted successfully' })
   } catch (err) {
     res.status(500).json({ message: 'Error deleting donor', error: err.message })
+  }
+})
+
+// ✅ Get single donor (optional, useful for editing)
+router.get('/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid Donor ID' })
+
+    const donor = await Donor.findById(id)
+    if (!donor) return res.status(404).json({ message: 'Donor not found' })
+
+    res.json(donor)
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching donor', error: err.message })
   }
 })
 
