@@ -12,7 +12,7 @@ const DonorRegistration = () => {
   useEffect(() => {
     if (campName) {
       setForm(prev => ({ ...prev, camp: campName }))
-    }
+    } 
   }, [campName])
 
   const handleChange = (e) => {
