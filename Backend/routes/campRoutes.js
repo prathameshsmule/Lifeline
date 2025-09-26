@@ -23,61 +23,13 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// Public: list camps
+// AFTER (public)
 router.get('/', async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: -1 });
     res.json(camps);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching camps', error: err.message });
-  }
-});
-
-// Delete camp (admin) — primary route
-router.delete('/:id', verifyToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid Camp ID' });
-    }
-
-    const camp = await Camp.findById(id);
-    if (!camp) {
-      return res.status(404).json({ message: 'Camp not found' });
-    }
-
-    // Cascade delete donors for this camp (comment out if you don't want this)
-    await Donor.deleteMany({ camp: id });
-
-    await Camp.findByIdAndDelete(id);
-    return res.json({ message: 'Camp deleted successfully' });
-  } catch (err) {
-    return res.status(500).json({ message: 'Error deleting camp', error: err.message });
-  }
-});
-
-// Fallback delete (admin) — use if host/proxy blocks DELETE
-router.post('/:id/delete', verifyToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid Camp ID' });
-    }
-
-    const camp = await Camp.findById(id);
-    if (!camp) {
-      return res.status(404).json({ message: 'Camp not found' });
-    }
-
-    // Cascade delete donors (same as DELETE route)
-    await Donor.deleteMany({ camp: id });
-
-    await Camp.findByIdAndDelete(id);
-    return res.json({ message: 'Camp deleted successfully' });
-  } catch (err) {
-    return res.status(500).json({ message: 'Error deleting camp', error: err.message });
   }
 });
 
@@ -112,5 +64,15 @@ router.get('/:id', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Error fetching camp', error: err.message });
   }
 });
+// BEFORE (protected)
+router.get('/', verifyToken, async (req, res) => {
+  try {
+    const camps = await Camp.find().sort({ date: -1 });s
+    res.json(camps);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching camps', error: err.message });
+  }
+});
+
 
 export default router;
