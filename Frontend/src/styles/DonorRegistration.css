@@ -321,3 +321,94 @@
     25% { transform: translateX(-5px); }
     75% { transform: translateX(5px); }
   }
+
+
+
+.donor-form {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.donor-form input,
+.donor-form select,
+.donor-form textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  background-color: #f9fafb;
+}
+
+.donor-form input:focus,
+.donor-form select:focus,
+.donor-form textarea:focus {
+  border-color: #e63946; /* Blood red */
+  box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.2);
+  background-color: #ffffff;
+}
+
+.donor-form button {
+  padding: 14px;
+  background: linear-gradient(135deg, #e63946, #d62828);
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  transition: transform 0.15s ease, background 0.3s ease;
+}
+
+.donor-form button:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #d62828, #b22222);
+}
+
+.donor-form textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.donor-form h2 {
+  text-align: center;
+  margin-bottom: 10px;
+  color: #1f2937;
+  font-size: 24px;
+}
+
+.donor-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.donor-form label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .donor-form {
+    padding: 20px;
+    gap: 14px;
+  }
+
+  .donor-form button {
+    font-size: 15px;
+    padding: 12px;
+  }
+}
