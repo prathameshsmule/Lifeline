@@ -6,7 +6,7 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-/** ADMIN: Add camp */
+// Add New Camp (admin)
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { name, location, date, organizerName, organizerContact, proName, hospitalName } = req.body;
@@ -17,39 +17,39 @@ router.post('/', verifyToken, async (req, res) => {
 
     const camp = new Camp({ name, location, date, organizerName, organizerContact, proName, hospitalName });
     await camp.save();
-    return res.status(201).json({ message: 'Camp added successfully', camp });
+    res.status(201).json({ message: 'Camp added successfully', camp });
   } catch (err) {
-    return res.status(500).json({ message: 'Error adding camp', error: err.message });
+    res.status(500).json({ message: 'Error adding camp', error: err.message });
   }
 });
 
-/** PUBLIC: list camps (for donor dropdown) */
-router.get('/', async (_req, res) => {
+// AFTER (public)
+router.get('/', async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: -1 });
-  return res.json(camps);
+    res.json(camps);
   } catch (err) {
-    return res.status(500).json({ message: 'Error fetching camps', error: err.message });
+    res.status(500).json({ message: 'Error fetching camps', error: err.message });
   }
 });
 
-/** ADMIN: list camps with donor counts */
-router.get('/with-count', verifyToken, async (_req, res) => {
+// Admin: All camps with donor counts
+router.get('/with-count', verifyToken, async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 });
-    const withCounts = await Promise.all(
+    const campsWithCounts = await Promise.all(
       camps.map(async (camp) => {
         const donorCount = await Donor.countDocuments({ camp: camp._id });
         return { ...camp.toObject(), donorCount };
       })
     );
-    return res.json(withCounts);
+    res.json(campsWithCounts);
   } catch (err) {
-    return res.status(500).json({ message: 'Error fetching camps', error: err.message });
+    res.status(500).json({ message: 'Error fetching camps', error: err.message });
   }
 });
 
-/** ADMIN: single camp (with donor count) */
+// Get single camp with donor count
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -59,10 +59,20 @@ router.get('/:id', verifyToken, async (req, res) => {
     if (!camp) return res.status(404).json({ message: 'Camp not found' });
 
     const donorCount = await Donor.countDocuments({ camp: camp._id });
-    return res.json({ ...camp.toObject(), donorCount });
+    res.json({ ...camp.toObject(), donorCount });
   } catch (err) {
-    return res.status(500).json({ message: 'Error fetching camp', error: err.message });
+    res.status(500).json({ message: 'Error fetching camp', error: err.message });
   }
 });
+// BEFORE (protected)
+router.get('/', verifyToken, async (req, res) => {
+  try {
+    const camps = await Camp.find().sort({ date: -1 });s
+    res.json(camps);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching camps', error: err.message });
+  }
+});
+
 
 export default router;
