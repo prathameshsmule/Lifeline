@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import '../styles/Admin.css';
+import "../styles/Admin.css";
 
 const API_BASE = "https://www.lifelinebloodcenter.org/api";
 
@@ -28,11 +28,12 @@ const Admin = () => {
     hospitalName: "",
   });
 
-  // NEW: camp filters
+  // Filters
   const [campQuery, setCampQuery] = useState("");
-  const [onlyUpcoming, setOnlyUpcoming] = useState(true);
-  const [onlyComingSoon, setOnlyComingSoon] = useState(false); // ≤7 days
-  const [sortMode, setSortMode] = useState("date-asc"); // date-asc | date-desc | newest-created (fallback)
+  const [onlyComingSoon, setOnlyComingSoon] = useState(false); // ≤ 7 days
+  const [upcomingSort, setUpcomingSort] = useState("date-asc"); // date-asc | date-desc
+  const [doneSort, setDoneSort] = useState("date-desc"); // date-desc | date-asc
+  const [tab, setTab] = useState("upcoming"); // upcoming | done
 
   const navigate = useNavigate();
   const token = localStorage.getItem("admin-token");
@@ -204,76 +205,156 @@ const Admin = () => {
     doc.save(`DonorList_${campName}.pdf`);
   };
 
-  // ========= Derived: counts & filters =========
+  // ========= Derived: counts =========
   const totalDonorsAcrossCamps = camps.reduce(
     (sum, c) => sum + (typeof c.donorCount === "number" ? c.donorCount : 0),
     0
   );
 
-  const filteredCamps = useMemo(() => {
-    let list = [...camps];
+  // ========= Filtered lists (search applies to both) =========
+  const applySearch = (list) => {
     const q = campQuery.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((c) => {
+      const s = [
+        c?.name,
+        c?.location,
+        c?.hospitalName,
+        c?.organizerName,
+        c?.organizerContact,
+        c?.proName,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return s.includes(q);
+    });
+  };
 
-    if (q) {
-      list = list.filter((c) => {
-        const s = [
-          c?.name,
-          c?.location,
-          c?.hospitalName,
-          c?.organizerName,
-          c?.organizerContact,
-          c?.proName,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return s.includes(q);
-      });
-    }
-
-    if (onlyUpcoming) {
-      list = list.filter((c) => isUpcoming(toDate(c?.date)));
-    }
-
-    if (onlyComingSoon) {
-      list = list.filter((c) => isSoon(toDate(c?.date), 7));
-    }
-
+  const upcomingCamps = useMemo(() => {
+    let list = camps.filter((c) => isUpcoming(toDate(c?.date)));
+    if (onlyComingSoon) list = list.filter((c) => isSoon(toDate(c?.date), 7));
+    list = applySearch(list);
     list.sort((a, b) => {
       const da = a?.date ? new Date(a.date).getTime() : 0;
       const db = b?.date ? new Date(b.date).getTime() : 0;
-      if (sortMode === "date-asc") return da - db;
-      if (sortMode === "date-desc") return db - da;
-      return 0;
+      return upcomingSort === "date-asc" ? da - db : db - da;
     });
-
     return list;
-  }, [camps, campQuery, onlyUpcoming, onlyComingSoon, sortMode]);
+  }, [camps, onlyComingSoon, campQuery, upcomingSort]);
 
-  // Camps within 3 days for banner alert
+  const doneCamps = useMemo(() => {
+    let list = camps.filter((c) => !isUpcoming(toDate(c?.date)));
+    list = applySearch(list);
+    list.sort((a, b) => {
+      const da = a?.date ? new Date(a.date).getTime() : 0;
+      const db = b?.date ? new Date(b.date).getTime() : 0;
+      return doneSort === "date-desc" ? db - da : da - db;
+    });
+    return list;
+  }, [camps, campQuery, doneSort]);
+
+  // Camps within 3 days for banner alert (on upcoming only)
   const urgentCamps = useMemo(
     () =>
-      camps
+      upcomingCamps
         .filter((c) => isSoon(toDate(c?.date), 3))
         .sort((a, b) => new Date(a.date) - new Date(b.date)),
-    [camps]
+    [upcomingCamps]
+  );
+
+  // ========= Render helpers =========
+  const whenBadge = (date) => {
+    const d = toDate(date);
+    if (!d) return null;
+    const du = daysUntil(d);
+    const whenLabel =
+      du < 0 ? "Done" : du === 0 ? "Today" : du === 1 ? "Tomorrow" : `In ${du} days`;
+    const cls =
+      du < 0 ? "text-bg-secondary" : du <= 3 ? "text-bg-warning" : "text-bg-light";
+    return <span className={`badge ${cls}`}>{whenLabel}</span>;
+  };
+
+  const CampCard = ({ camp, isPast }) => (
+    <div className="col-md-4">
+      <div className="card h-100">
+        <div className="card-body">
+          <h5 className="card-title text-danger d-flex justify-content-between align-items-start">
+            <span>{camp.name}</span>
+            <span className="badge text-bg-danger">
+              Donors: {typeof camp.donorCount === "number" ? camp.donorCount : 0}
+            </span>
+          </h5>
+
+          <div className="d-flex align-items-center gap-2 mb-2">
+            <span className="badge text-bg-light">
+              {camp.date ? new Date(camp.date).toLocaleDateString() : "No date"}
+            </span>
+            {whenBadge(camp.date)}
+          </div>
+
+          <p className="card-text mb-3">
+            <strong>Location:</strong> {camp.location || "N/A"}
+            <br />
+            <strong>Organizer:</strong> {camp.organizerName || "N/A"}
+            <br />
+            <strong>Contact:</strong> {camp.organizerContact || "N/A"}
+            <br />
+            <strong>PRO:</strong> {camp.proName || "N/A"}
+            <br />
+            <strong>Hospital:</strong> {camp.hospitalName || "N/A"}
+          </p>
+
+          <div className="d-flex flex-wrap gap-2">
+            <button
+              className="btn btn-outline-danger btn-sm"
+              onClick={() => setSelectedCamp(camp._id)}
+            >
+              View Donors
+            </button>
+
+            <button
+              className="btn btn-sm btn-outline-primary"
+              onClick={() => {
+                if (isPast) return;
+                const link = `${window.location.origin}/register?campId=${camp._id}`;
+                navigator.clipboard.writeText(link);
+                alert(`✅ Registration link copied:\n${link}`);
+              }}
+              disabled={isPast}
+              title={isPast ? "Registration closed for done camps" : "Copy registration link"}
+            >
+              Copy Registration Link
+            </button>
+
+            <button
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => {
+                if (isPast) return;
+                setShowQR((prev) => ({ ...prev, [camp._id]: !prev[camp._id] }));
+              }}
+              disabled={isPast}
+              title={isPast ? "QR is hidden for done camps" : showQR[camp._id] ? "Hide QR" : "Show QR"}
+            >
+              {showQR[camp._id] ? "Hide QR" : "Show QR"}
+            </button>
+          </div>
+
+          {!isPast && showQR[camp._id] && (
+            <div className="mt-2">
+              <QRCodeCanvas value={`${window.location.origin}/register?campId=${camp._id}`} size={128} />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 
   // ========= UI =========
   return (
     <div className="container py-2">
       {/* Header */}
-      <div
-        className="d-flex justify-content-between align-items-center flex-wrap px-3 py-2"
-        style={{
-          position: "sticky",
-          top: "70px",
-          marginTop: "70px",
-          backgroundColor: "white",
-          borderBottom: "1px solid #ddd",
-          zIndex: 1050,
-        }}
-      >
+      <div className="d-flex justify-content-between align-items-center flex-wrap px-3 py-2 admin-sticky">
         <h2 className="text-danger mb-0">Camps</h2>
         <div className="d-flex align-items-center gap-3">
           <span className="badge text-bg-danger">
@@ -285,16 +366,15 @@ const Admin = () => {
         </div>
       </div>
 
-      {/* URGENT BANNER: camps in ≤ 3 days */}
-      {!!urgentCamps.length && (
+      {/* URGENT BANNER: only for upcoming tab */}
+      {tab === "upcoming" && !!urgentCamps.length && (
         <div className="alert alert-warning d-flex align-items-center gap-2 mt-3" role="alert">
           <strong>Heads up:</strong>
           <span className="ms-1">
-            {urgentCamps.map((c, i) => {
+            {urgentCamps.map((c) => {
               const d = toDate(c.date);
               const du = daysUntil(d);
-              const label =
-                du === 0 ? "Today" : du === 1 ? "Tomorrow" : `In ${du} days`;
+              const label = du === 0 ? "Today" : du === 1 ? "Tomorrow" : `In ${du} days`;
               return (
                 <span key={c._id} className="me-3">
                   <span className="fw-semibold">{c.name}</span> ({label})
@@ -344,153 +424,111 @@ const Admin = () => {
         </button>
       </form>
 
-      {/* Camp Filters */}
-      <div className="border p-3 rounded mb-3">
-        <div className="row g-2 align-items-end">
-          <div className="col-md-6">
-            <label className="form-label">Search camps</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Search by name, location, hospital, organizer…"
-              value={campQuery}
-              onChange={(e) => setCampQuery(e.target.value)}
-            />
-          </div>
-          <div className="col-md-3">
-            <label className="form-label">Sort by</label>
-            <select
-              className="form-select"
-              value={sortMode}
-              onChange={(e) => setSortMode(e.target.value)}
+      {/* Tabs */}
+      <div className="border rounded p-2 mb-3 filter-bar">
+        <div className="d-flex align-items-center gap-2 flex-wrap">
+          <div className="btn-group" role="group" aria-label="Camp tabs">
+            <button
+              type="button"
+              className={`btn ${tab === "upcoming" ? "btn-danger" : "btn-outline-danger"}`}
+              onClick={() => setTab("upcoming")}
             >
-              <option value="date-asc">Date: Soonest first</option>
-              <option value="date-desc">Date: Latest first</option>
-            </select>
+              Upcoming
+            </button>
+            <button
+              type="button"
+              className={`btn ${tab === "done" ? "btn-danger" : "btn-outline-danger"}`}
+              onClick={() => setTab("done")}
+            >
+              Done
+            </button>
           </div>
-          <div className="col-md-3 d-flex gap-3 flex-wrap">
-            <div className="form-check mt-4">
+
+          {/* Shared search */}
+          <div className="ms-auto d-flex align-items-end gap-2 flex-wrap" style={{ flex: 1 }}>
+            <div className="flex-grow-1" style={{ minWidth: 260 }}>
+              <label className="form-label mb-1">Search camps</label>
               <input
-                className="form-check-input"
-                type="checkbox"
-                id="onlyUpcoming"
-                checked={onlyUpcoming}
-                onChange={(e) => setOnlyUpcoming(e.target.checked)}
+                type="text"
+                className="form-control"
+                placeholder="Search by name, location, hospital, organizer…"
+                value={campQuery}
+                onChange={(e) => setCampQuery(e.target.value)}
               />
-              <label className="form-check-label" htmlFor="onlyUpcoming">
-                Only upcoming
-              </label>
             </div>
-            <div className="form-check mt-4">
-              <input
-                className="form-check-input"
-                type="checkbox"
-                id="onlySoon"
-                checked={onlyComingSoon}
-                onChange={(e) => setOnlyComingSoon(e.target.checked)}
-              />
-              <label className="form-check-label" htmlFor="onlySoon">
-                Coming soon (≤ 7 days)
-              </label>
-            </div>
+
+            {/* Per-tab sort + filters */}
+            {tab === "upcoming" ? (
+              <>
+                <div>
+                  <label className="form-label mb-1">Sort by</label>
+                  <select
+                    className="form-select"
+                    value={upcomingSort}
+                    onChange={(e) => setUpcomingSort(e.target.value)}
+                  >
+                    <option value="date-asc">Date: Soonest first</option>
+                    <option value="date-desc">Date: Latest first</option>
+                  </select>
+                </div>
+                <div className="form-check mt-4">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id="onlySoon"
+                    checked={onlyComingSoon}
+                    onChange={(e) => setOnlyComingSoon(e.target.checked)}
+                  />
+                  <label className="form-check-label" htmlFor="onlySoon">
+                    Coming soon (≤ 7 days)
+                  </label>
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="form-label mb-1">Sort by</label>
+                <select
+                  className="form-select"
+                  value={doneSort}
+                  onChange={(e) => setDoneSort(e.target.value)}
+                >
+                  <option value="date-desc">Date: Most recent first</option>
+                  <option value="date-asc">Date: Oldest first</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
+
         <div className="mt-2 small text-muted">
-          Showing <strong>{filteredCamps.length}</strong> of {camps.length} camps
+          {tab === "upcoming" ? (
+            <>Showing <strong>{upcomingCamps.length}</strong> upcoming of {camps.length} total camps</>
+          ) : (
+            <>Showing <strong>{doneCamps.length}</strong> done of {camps.length} total camps</>
+          )}
         </div>
       </div>
 
-      {/* Camp Cards */}
+      {/* Camp Lists */}
       {loadingCamps ? (
         <p>Loading camps...</p>
+      ) : tab === "upcoming" ? (
+        <div className="row g-3">
+          {upcomingCamps.length ? (
+            upcomingCamps.map((camp) => <CampCard key={camp._id} camp={camp} isPast={false} />)
+          ) : (
+            <div className="col-12">
+              <div className="alert alert-light border text-center">No upcoming camps match your filters.</div>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="row g-3">
-          {filteredCamps.map((camp) => {
-            const d = toDate(camp.date);
-            const du = daysUntil(d); // can be negative for past
-            const whenLabel =
-              !d
-                ? null
-                : du < 0
-                ? "Overdue"
-                : du === 0
-                ? "Today"
-                : du === 1
-                ? "Tomorrow"
-                : `In ${du} days`;
-
-            const dateBadgeClass =
-              du < 0
-                ? "text-bg-secondary"
-                : du <= 3
-                ? "text-bg-warning"
-                : "text-bg-light";
-
-            return (
-              <div key={camp._id} className="col-md-4">
-                <div className="card h-100">
-                  <div className="card-body">
-                    <h5 className="card-title text-danger d-flex justify-content-between align-items-start">
-                      <span>{camp.name}</span>
-                      <span className="badge text-bg-danger">
-                        Donors: {typeof camp.donorCount === "number" ? camp.donorCount : 0}
-                      </span>
-                    </h5>
-
-                    <div className="d-flex align-items-center gap-2 mb-2">
-                      <span className="badge text-bg-light">
-                        {camp.date ? new Date(camp.date).toLocaleDateString() : "No date"}
-                      </span>
-                      {whenLabel && <span className={`badge ${dateBadgeClass}`}>{whenLabel}</span>}
-                    </div>
-
-                    <p className="card-text mb-3">
-                      <strong>Location:</strong> {camp.location || "N/A"}
-                      <br />
-                      <strong>Organizer:</strong> {camp.organizerName || "N/A"}
-                      <br />
-                      <strong>Contact:</strong> {camp.organizerContact || "N/A"}
-                      <br />
-                      <strong>PRO:</strong> {camp.proName || "N/A"}
-                      <br />
-                      <strong>Hospital:</strong> {camp.hospitalName || "N/A"}
-                    </p>
-
-                    <div className="d-flex flex-wrap gap-2">
-                      <button className="btn btn-outline-danger btn-sm" onClick={() => setSelectedCamp(camp._id)}>
-                        View Donors
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-primary"
-                        onClick={() => {
-                          const link = `${window.location.origin}/register?campId=${camp._id}`;
-                          navigator.clipboard.writeText(link);
-                          alert(`✅ Registration link copied:\n${link}`);
-                        }}
-                      >
-                        Copy Registration Link
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-secondary"
-                        onClick={() => setShowQR((prev) => ({ ...prev, [camp._id]: !prev[camp._id] }))}
-                      >
-                        {showQR[camp._id] ? "Hide QR" : "Show QR"}
-                      </button>
-                    </div>
-
-                    {showQR[camp._id] && (
-                      <div className="mt-2">
-                        <QRCodeCanvas value={`${window.location.origin}/register?campId=${camp._id}`} size={128} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          {!filteredCamps.length && (
+          {doneCamps.length ? (
+            doneCamps.map((camp) => <CampCard key={camp._id} camp={camp} isPast={true} />)
+          ) : (
             <div className="col-12">
-              <div className="alert alert-light border text-center">No camps match your filters.</div>
+              <div className="alert alert-light border text-center">No done camps match your filters.</div>
             </div>
           )}
         </div>
@@ -541,14 +579,24 @@ const Admin = () => {
                         <td>{index + 1}</td>
                         <td>
                           {editDonorId === donor._id ? (
-                            <input className="form-control form-control-sm" name="name" value={editForm.name || ""} onChange={handleEditChange} />
+                            <input
+                              className="form-control form-control-sm"
+                              name="name"
+                              value={editForm.name || ""}
+                              onChange={handleEditChange}
+                            />
                           ) : (
                             donor.name
                           )}
                         </td>
                         <td>
                           {editDonorId === donor._id ? (
-                            <select className="form-select form-select-sm" name="bloodGroup" value={editForm.bloodGroup || ""} onChange={handleEditChange}>
+                            <select
+                              className="form-select form-select-sm"
+                              name="bloodGroup"
+                              value={editForm.bloodGroup || ""}
+                              onChange={handleEditChange}
+                            >
                               <option value="">Select</option>
                               {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
                                 <option key={bg} value={bg}>
@@ -562,35 +610,60 @@ const Admin = () => {
                         </td>
                         <td>
                           {editDonorId === donor._id ? (
-                            <input className="form-control form-control-sm" name="age" value={editForm.age || ""} onChange={handleEditChange} />
+                            <input
+                              className="form-control form-control-sm"
+                              name="age"
+                              value={editForm.age || ""}
+                              onChange={handleEditChange}
+                            />
                           ) : (
                             donor.age
                           )}
                         </td>
                         <td>
                           {editDonorId === donor._id ? (
-                            <input className="form-control form-control-sm" name="weight" value={editForm.weight || ""} onChange={handleEditChange} />
+                            <input
+                              className="form-control form-control-sm"
+                              name="weight"
+                              value={editForm.weight || ""}
+                              onChange={handleEditChange}
+                            />
                           ) : (
                             donor.weight
                           )}
                         </td>
                         <td>
                           {editDonorId === donor._id ? (
-                            <input className="form-control form-control-sm" name="email" value={editForm.email || ""} onChange={handleEditChange} />
+                            <input
+                              className="form-control form-control-sm"
+                              name="email"
+                              value={editForm.email || ""}
+                              onChange={handleEditChange}
+                            />
                           ) : (
                             donor.email
                           )}
                         </td>
                         <td>
                           {editDonorId === donor._id ? (
-                            <input className="form-control form-control-sm" name="phone" value={editForm.phone || ""} onChange={handleEditChange} />
+                            <input
+                              className="form-control form-control-sm"
+                              name="phone"
+                              value={editForm.phone || ""}
+                              onChange={handleEditChange}
+                            />
                           ) : (
                             donor.phone
                           )}
                         </td>
                         <td>
                           {editDonorId === donor._id ? (
-                            <input className="form-control form-control-sm" name="address" value={editForm.address || ""} onChange={handleEditChange} />
+                            <input
+                              className="form-control form-control-sm"
+                              name="address"
+                              value={editForm.address || ""}
+                              onChange={handleEditChange}
+                            />
                           ) : (
                             donor.address
                           )}
@@ -602,11 +675,7 @@ const Admin = () => {
                             onChange={async (e) => {
                               const remark = e.target.value;
                               try {
-                                await axios.put(
-                                  `${API_BASE}/donors/${donor._id}`,
-                                  { remark },
-                                  { headers: { Authorization: `Bearer ${token}` } }
-                                );
+                                await axios.put(`${API_BASE}/donors/${donor._id}`, { remark }, { headers: { Authorization: `Bearer ${token}` } });
                                 setDonors((prev) => prev.map((d) => (d._id === donor._id ? { ...d, remark } : d)));
                               } catch {
                                 alert("Error updating remark");
