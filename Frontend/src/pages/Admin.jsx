@@ -5,7 +5,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const API_BASE = "https://www.lifelinebloodcenter.org/api";
+const API_BASE = import.meta.env.VITE_APP_API_URL || "https://www.lifelinebloodcenter.org/api";
 
 const Admin = () => {
   const [donors, setDonors] = useState([]);
@@ -28,75 +28,73 @@ const Admin = () => {
   });
 
   const navigate = useNavigate();
-
   const token = localStorage.getItem("admin-token");
 
-  // ✅ Check admin token on mount
   useEffect(() => {
-    if (!token) return navigate("/admin-login");
+    if (!token) {
+      navigate("/admin-login");
+      return;
+    }
     fetchCamps();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, navigate]);
 
-  // ✅ Fetch donors when a camp is selected
   useEffect(() => {
     if (selectedCamp) fetchDonors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCamp]);
 
-  // Fetch all camps
   const fetchCamps = async () => {
     setLoadingCamps(true);
     try {
       const res = await axios.get(`${API_BASE}/camps`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      setCamps(res.data);
+      setCamps(res.data || []);
     } catch (err) {
       console.error("Failed to fetch camps:", err.response || err);
       setCamps([]);
-      if ([401, 403].includes(err.response?.status)) handleLogout();
+      const status = err?.response?.status;
+      if ([401, 403].includes(status)) handleLogout();
     } finally {
       setLoadingCamps(false);
     }
   };
 
-  // Fetch donors for selected camp
   const fetchDonors = async () => {
+    if (!selectedCamp) return;
     setLoadingDonors(true);
     try {
       const res = await axios.get(`${API_BASE}/donors/camp/${selectedCamp}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       setDonors(res.data || []);
     } catch (err) {
       console.error("Failed to fetch donors:", err.response || err);
       setDonors([]);
-      if ([401, 403].includes(err.response?.status)) handleLogout();
+      const status = err?.response?.status;
+      if ([401, 403].includes(status)) handleLogout();
     } finally {
       setLoadingDonors(false);
     }
   };
 
-  // Logout
   const handleLogout = () => {
     localStorage.removeItem("admin-token");
     navigate("/admin-login");
   };
 
-  // Handle new camp form changes
   const handleNewCampChange = (e) => {
     setNewCamp({ ...newCamp, [e.target.name]: e.target.value });
   };
 
-  // Add new camp
   const handleNewCampSubmit = async (e) => {
     e.preventDefault();
     try {
       await axios.post(`${API_BASE}/camps`, newCamp, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      setNewCamp({
-        name: "", location: "", date: "", organizerName: "", organizerContact: "", proName: "", hospitalName: ""
-      });
+      setNewCamp({ name: "", location: "", date: "", organizerName: "", organizerContact: "", proName: "", hospitalName: "" });
       fetchCamps();
       alert("Camp added successfully!");
     } catch (err) {
@@ -105,12 +103,11 @@ const Admin = () => {
     }
   };
 
-  // Delete donor
   const handleDeleteDonor = async (id) => {
     if (!window.confirm("Are you sure you want to delete this donor?")) return;
     try {
       await axios.delete(`${API_BASE}/donors/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       fetchDonors();
       alert("Donor deleted successfully!");
@@ -120,7 +117,6 @@ const Admin = () => {
     }
   };
 
-  // Edit donor
   const handleEditClick = (donor) => {
     setEditDonorId(donor._id);
     setEditForm({ ...donor });
@@ -133,11 +129,9 @@ const Admin = () => {
   const handleEditSave = async (id) => {
     try {
       await axios.put(`${API_BASE}/donors/${id}`, editForm, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      setDonors((prev) =>
-        prev.map((d) => (d._id === id ? { ...editForm } : d))
-      );
+      setDonors((prev) => prev.map((d) => (d._id === id ? { ...editForm } : d)));
       setEditDonorId(null);
     } catch (err) {
       console.error(err.response || err);
@@ -145,13 +139,12 @@ const Admin = () => {
     }
   };
 
-  // Download PDF of donors
   const downloadPDF = () => {
     if (!donors.length) return alert("No donors to export.");
 
     const doc = new jsPDF();
     doc.setFontSize(16);
-    const campName = camps.find((c) => c._id === selectedCamp)?.name || "All Camps";
+    const campName = camps.find((c) => c._id === selectedCamp)?.name || "All_Camps";
     doc.text(`Donor List for Camp: ${campName}`, 14, 15);
 
     const tableColumn = [
@@ -171,7 +164,7 @@ const Admin = () => {
     ]);
 
     autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20 });
-    doc.save(`DonorList_${campName}.pdf`);
+    doc.save(`DonorList_${campName.replace(/\s+/g, "_")}.pdf`);
   };
 
   const filteredDonors = donors.filter((d) =>
@@ -180,14 +173,12 @@ const Admin = () => {
 
   return (
     <div className="container py-2">
-      {/* Header */}
       <div className="d-flex justify-content-between align-items-center flex-wrap px-3 py-2"
         style={{ position: "sticky", top: "70px", marginTop: "70px", backgroundColor: "white", borderBottom: "1px solid #ddd", zIndex: 1050 }}>
         <h2 className="text-danger mb-0">Camps</h2>
         <button className="btn btn-danger" onClick={handleLogout}>Logout</button>
       </div>
 
-      {/* Add Camp Form */}
       <form onSubmit={handleNewCampSubmit} className="border p-3 rounded mb-4 bg-light">
         <h5>Add New Camp</h5>
         <div className="row g-2">
@@ -216,7 +207,6 @@ const Admin = () => {
         <button type="submit" className="btn btn-primary mt-3">Add Camp</button>
       </form>
 
-      {/* Camp Cards */}
       {loadingCamps ? <p>Loading camps...</p> :
         <div className="row g-3">
           {camps.map((camp) => (
@@ -250,7 +240,6 @@ const Admin = () => {
         </div>
       }
 
-      {/* Donor Table */}
       {selectedCamp && (
         <div className="mt-5">
           <h4 className="text-danger">Donors for Camp: {camps.find(c => c._id === selectedCamp)?.name || ""}</h4>
@@ -287,7 +276,7 @@ const Admin = () => {
                         <select className="form-select form-select-sm" value={donor.remark || ""} onChange={async e => {
                           const remark = e.target.value;
                           try {
-                            await axios.put(`${API_BASE}/donors/${donor._id}`, { remark }, { headers: { Authorization: `Bearer ${token}` } });
+                            await axios.put(`${API_BASE}/donors/${donor._id}`, { remark }, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
                             setDonors(prev => prev.map(d => d._id === donor._id ? { ...d, remark } : d));
                           } catch { alert("Error updating remark"); }
                         }}>
