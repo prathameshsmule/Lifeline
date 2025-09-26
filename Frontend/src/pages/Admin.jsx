@@ -32,8 +32,9 @@ const Admin = () => {
   const [campQuery, setCampQuery] = useState("");
   const [onlyComingSoon, setOnlyComingSoon] = useState(false); // ≤ 7 days
   const [upcomingSort, setUpcomingSort] = useState("date-asc"); // date-asc | date-desc
-  const [doneSort, setDoneSort] = useState("date-desc"); // date-desc | date-asc
-  const [tab, setTab] = useState("upcoming"); // upcoming | done
+  const [doneSort, setDoneSort] = useState("date-desc");       // date-desc | date-asc
+  const [allSort, setAllSort] = useState("date-desc");         // date-desc | date-asc
+  const [tab, setTab] = useState("upcoming"); // upcoming | all | done
 
   const navigate = useNavigate();
   const token = localStorage.getItem("admin-token");
@@ -211,7 +212,7 @@ const Admin = () => {
     0
   );
 
-  // ========= Filtered lists (search applies to both) =========
+  // ========= Search helper =========
   const applySearch = (list) => {
     const q = campQuery.trim().toLowerCase();
     if (!q) return list;
@@ -231,6 +232,7 @@ const Admin = () => {
     });
   };
 
+  // ========= Lists per tab =========
   const upcomingCamps = useMemo(() => {
     let list = camps.filter((c) => isUpcoming(toDate(c?.date)));
     if (onlyComingSoon) list = list.filter((c) => isSoon(toDate(c?.date), 7));
@@ -254,7 +256,17 @@ const Admin = () => {
     return list;
   }, [camps, campQuery, doneSort]);
 
-  // Camps within 3 days for banner alert (on upcoming only)
+  const allCamps = useMemo(() => {
+    let list = applySearch([...camps]);
+    list.sort((a, b) => {
+      const da = a?.date ? new Date(a.date).getTime() : 0;
+      const db = b?.date ? new Date(b.date).getTime() : 0;
+      return allSort === "date-desc" ? db - da : da - db;
+    });
+    return list;
+  }, [camps, campQuery, allSort]);
+
+  // Urgent (≤3 days) for Upcoming tab
   const urgentCamps = useMemo(
     () =>
       upcomingCamps
@@ -275,80 +287,83 @@ const Admin = () => {
     return <span className={`badge ${cls}`}>{whenLabel}</span>;
   };
 
-  const CampCard = ({ camp, isPast }) => (
-    <div className="col-md-4">
-      <div className="card h-100">
-        <div className="card-body">
-          <h5 className="card-title text-danger d-flex justify-content-between align-items-start">
-            <span>{camp.name}</span>
-            <span className="badge text-bg-danger">
-              Donors: {typeof camp.donorCount === "number" ? camp.donorCount : 0}
-            </span>
-          </h5>
+  const CampCard = ({ camp, isPastOverride = null }) => {
+    const past = isPastOverride ?? !isUpcoming(toDate(camp?.date));
+    return (
+      <div className="col-md-4">
+        <div className="card h-100">
+          <div className="card-body">
+            <h5 className="card-title text-danger d-flex justify-content-between align-items-start">
+              <span>{camp.name}</span>
+              <span className="badge text-bg-danger">
+                Donors: {typeof camp.donorCount === "number" ? camp.donorCount : 0}
+              </span>
+            </h5>
 
-          <div className="d-flex align-items-center gap-2 mb-2">
-            <span className="badge text-bg-light">
-              {camp.date ? new Date(camp.date).toLocaleDateString() : "No date"}
-            </span>
-            {whenBadge(camp.date)}
-          </div>
-
-          <p className="card-text mb-3">
-            <strong>Location:</strong> {camp.location || "N/A"}
-            <br />
-            <strong>Organizer:</strong> {camp.organizerName || "N/A"}
-            <br />
-            <strong>Contact:</strong> {camp.organizerContact || "N/A"}
-            <br />
-            <strong>PRO:</strong> {camp.proName || "N/A"}
-            <br />
-            <strong>Hospital:</strong> {camp.hospitalName || "N/A"}
-          </p>
-
-          <div className="d-flex flex-wrap gap-2">
-            <button
-              className="btn btn-outline-danger btn-sm"
-              onClick={() => setSelectedCamp(camp._id)}
-            >
-              View Donors
-            </button>
-
-            <button
-              className="btn btn-sm btn-outline-primary"
-              onClick={() => {
-                if (isPast) return;
-                const link = `${window.location.origin}/register?campId=${camp._id}`;
-                navigator.clipboard.writeText(link);
-                alert(`✅ Registration link copied:\n${link}`);
-              }}
-              disabled={isPast}
-              title={isPast ? "Registration closed for done camps" : "Copy registration link"}
-            >
-              Copy Registration Link
-            </button>
-
-            <button
-              className="btn btn-sm btn-outline-secondary"
-              onClick={() => {
-                if (isPast) return;
-                setShowQR((prev) => ({ ...prev, [camp._id]: !prev[camp._id] }));
-              }}
-              disabled={isPast}
-              title={isPast ? "QR is hidden for done camps" : showQR[camp._id] ? "Hide QR" : "Show QR"}
-            >
-              {showQR[camp._id] ? "Hide QR" : "Show QR"}
-            </button>
-          </div>
-
-          {!isPast && showQR[camp._id] && (
-            <div className="mt-2">
-              <QRCodeCanvas value={`${window.location.origin}/register?campId=${camp._id}`} size={128} />
+            <div className="d-flex align-items-center gap-2 mb-2">
+              <span className="badge text-bg-light">
+                {camp.date ? new Date(camp.date).toLocaleDateString() : "No date"}
+              </span>
+              {whenBadge(camp.date)}
             </div>
-          )}
+
+            <p className="card-text mb-3">
+              <strong>Location:</strong> {camp.location || "N/A"}
+              <br />
+              <strong>Organizer:</strong> {camp.organizerName || "N/A"}
+              <br />
+              <strong>Contact:</strong> {camp.organizerContact || "N/A"}
+              <br />
+              <strong>PRO:</strong> {camp.proName || "N/A"}
+              <br />
+              <strong>Hospital:</strong> {camp.hospitalName || "N/A"}
+            </p>
+
+            <div className="d-flex flex-wrap gap-2">
+              <button
+                className="btn btn-outline-danger btn-sm"
+                onClick={() => setSelectedCamp(camp._id)}
+              >
+                View Donors
+              </button>
+
+              <button
+                className="btn btn-sm btn-outline-primary"
+                onClick={() => {
+                  if (past) return;
+                  const link = `${window.location.origin}/register?campId=${camp._id}`;
+                  navigator.clipboard.writeText(link);
+                  alert(`✅ Registration link copied:\n${link}`);
+                }}
+                disabled={past}
+                title={past ? "Registration closed for done camps" : "Copy registration link"}
+              >
+                Copy Registration Link
+              </button>
+
+              <button
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => {
+                  if (past) return;
+                  setShowQR((prev) => ({ ...prev, [camp._id]: !prev[camp._id] }));
+                }}
+                disabled={past}
+                title={past ? "QR is hidden for done camps" : showQR[camp._id] ? "Hide QR" : "Show QR"}
+              >
+                {showQR[camp._id] ? "Hide QR" : "Show QR"}
+              </button>
+            </div>
+
+            {!past && showQR[camp._id] && (
+              <div className="mt-2">
+                <QRCodeCanvas value={`${window.location.origin}/register?campId=${camp._id}`} size={128} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // ========= UI =========
   return (
@@ -424,7 +439,7 @@ const Admin = () => {
         </button>
       </form>
 
-      {/* Tabs */}
+      {/* Tabs + Filters */}
       <div className="border rounded p-2 mb-3 filter-bar">
         <div className="d-flex align-items-center gap-2 flex-wrap">
           <div className="btn-group" role="group" aria-label="Camp tabs">
@@ -434,6 +449,13 @@ const Admin = () => {
               onClick={() => setTab("upcoming")}
             >
               Upcoming
+            </button>
+            <button
+              type="button"
+              className={`btn ${tab === "all" ? "btn-danger" : "btn-outline-danger"}`}
+              onClick={() => setTab("all")}
+            >
+              All
             </button>
             <button
               type="button"
@@ -457,8 +479,8 @@ const Admin = () => {
               />
             </div>
 
-            {/* Per-tab sort + filters */}
-            {tab === "upcoming" ? (
+            {/* Per-tab sort & filters */}
+            {tab === "upcoming" && (
               <>
                 <div>
                   <label className="form-label mb-1">Sort by</label>
@@ -484,14 +506,22 @@ const Admin = () => {
                   </label>
                 </div>
               </>
-            ) : (
+            )}
+
+            {tab === "all" && (
               <div>
                 <label className="form-label mb-1">Sort by</label>
-                <select
-                  className="form-select"
-                  value={doneSort}
-                  onChange={(e) => setDoneSort(e.target.value)}
-                >
+                <select className="form-select" value={allSort} onChange={(e) => setAllSort(e.target.value)}>
+                  <option value="date-desc">Date: Most recent first</option>
+                  <option value="date-asc">Date: Oldest first</option>
+                </select>
+              </div>
+            )}
+
+            {tab === "done" && (
+              <div>
+                <label className="form-label mb-1">Sort by</label>
+                <select className="form-select" value={doneSort} onChange={(e) => setDoneSort(e.target.value)}>
                   <option value="date-desc">Date: Most recent first</option>
                   <option value="date-asc">Date: Oldest first</option>
                 </select>
@@ -501,11 +531,9 @@ const Admin = () => {
         </div>
 
         <div className="mt-2 small text-muted">
-          {tab === "upcoming" ? (
-            <>Showing <strong>{upcomingCamps.length}</strong> upcoming of {camps.length} total camps</>
-          ) : (
-            <>Showing <strong>{doneCamps.length}</strong> done of {camps.length} total camps</>
-          )}
+          {tab === "upcoming" && <>Showing <strong>{upcomingCamps.length}</strong> upcoming of {camps.length} total camps</>}
+          {tab === "all" && <>Showing <strong>{allCamps.length}</strong> camps</>}
+          {tab === "done" && <>Showing <strong>{doneCamps.length}</strong> done of {camps.length} total camps</>}
         </div>
       </div>
 
@@ -515,17 +543,34 @@ const Admin = () => {
       ) : tab === "upcoming" ? (
         <div className="row g-3">
           {upcomingCamps.length ? (
-            upcomingCamps.map((camp) => <CampCard key={camp._id} camp={camp} isPast={false} />)
+            upcomingCamps.map((camp) => <CampCard key={camp._id} camp={camp} isPastOverride={false} />)
           ) : (
             <div className="col-12">
               <div className="alert alert-light border text-center">No upcoming camps match your filters.</div>
             </div>
           )}
         </div>
+      ) : tab === "all" ? (
+        <div className="row g-3">
+          {allCamps.length ? (
+            allCamps.map((camp) => (
+              <CampCard
+                key={camp._id}
+                camp={camp}
+                // In All tab, compute past/future per card
+                isPastOverride={!isUpcoming(toDate(camp?.date))}
+              />
+            ))
+          ) : (
+            <div className="col-12">
+              <div className="alert alert-light border text-center">No camps match your filters.</div>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="row g-3">
           {doneCamps.length ? (
-            doneCamps.map((camp) => <CampCard key={camp._id} camp={camp} isPast={true} />)
+            doneCamps.map((camp) => <CampCard key={camp._id} camp={camp} isPastOverride={true} />)
           ) : (
             <div className="col-12">
               <div className="alert alert-light border text-center">No done camps match your filters.</div>
