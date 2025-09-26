@@ -105,22 +105,41 @@ const DonorRegistration = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!calculatedAge || calculatedAge < 18) {
       alert("Minimum age 18 required");
       return;
     }
-    if (parseInt(formData.weight) < 50) {
+    if (parseInt(formData.weight, 10) < 50) {
       alert("Minimum weight 50kg required");
+      return;
+    }
+    if (!formData.camp) {
+      alert("Please select a camp.");
       return;
     }
 
     try {
-      await axios.post(`${API_BASE}/donors`, formData);
+      // ✅ Build payload with required "age" field and normalized values
+      const payload = {
+        ...formData,
+        age: calculatedAge,                                  // REQUIRED by backend
+        weight: Number(formData.weight),                     // normalize to number
+        dob: new Date(formData.dob).toISOString(),           // send ISO string
+      };
+
+      await axios.post(`${API_BASE}/donors`, payload);
       await sendEmail(formData);
 
       alert("🎉 Registration successful! Check your email for confirmation.");
       setFormData({
-        name: '', dob: '', weight: '', bloodGroup: '', email: '', phone: '', address: '',
+        name: '',
+        dob: '',
+        weight: '',
+        bloodGroup: '',
+        email: '',
+        phone: '',
+        address: '',
         camp: campLocked ? formData.camp : ''
       });
       setCalculatedAge(null);
