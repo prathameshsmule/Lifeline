@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import "./styles/Admin.css";
+import "../styles/Admin.css";
 
 // Lazy-load QR to keep initial bundle smaller (optional but nice)
 const QRCode = React.lazy(() => import("qrcode.react"));
