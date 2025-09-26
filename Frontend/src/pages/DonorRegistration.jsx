@@ -1,108 +1,270 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { useParams, useLocation } from "react-router-dom";
-
-const API_BASE = import.meta.env.VITE_APP_API_URL || "https://www.lifelinebloodcenter.org/api";
+import React, { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
+import axios from 'axios'
+import emailjs from '@emailjs/browser'
+import logo from '../assets/images/blood donor.png'
+import '../styles/DonorRegistration.css'
 
 const DonorRegistration = () => {
-  const { campName } = useParams(); // route param if used
-  const location = useLocation();
-  const search = new URLSearchParams(location.search);
-  const campIdFromQuery = search.get("campId");
+  const location = useLocation()
+  const queryParams = new URLSearchParams(location.search)
+  const campIdFromUrl = queryParams.get('campId')
 
-  const [form, setForm] = useState({
-    name: "", age: "", weight: "", bloodGroup: "", email: "",
-    phone: "", address: "", campId: ""
-  });
-  const [camps, setCamps] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '', dob: '', weight: '', bloodGroup: '',
+    email: '', phone: '', address: '', camp: ''
+  })
+
+  const [camps, setCamps] = useState([])
+  const [campLocked, setCampLocked] = useState(false)
+  const [calculatedAge, setCalculatedAge] = useState(null)
+
+  // Initialize EmailJS
+  useEffect(() => {
+    emailjs.init('NtoYnRvbn1y7ywGKq')
+  }, [])
 
   useEffect(() => {
-    if (campName) {
-      // if route param uses campName, we fill campId with campName (or store readable name)
-      setForm(prev => ({ ...prev, campId: campName }));
-    } else if (campIdFromQuery) {
-      setForm(prev => ({ ...prev, campId: campIdFromQuery }));
+    axios.get('https://www.lifelinebloodcenter.org/api/camps')
+      .then(res => {
+        setCamps(res.data)
+        if (campIdFromUrl) {
+          const selectedCamp = res.data.find(c => c._id === campIdFromUrl)
+          if (selectedCamp) {
+            setFormData(prev => ({ ...prev, camp: selectedCamp.name }))
+            setCampLocked(true)
+          }
+        }
+      })
+      .catch(() => setCamps([]))
+  }, [campIdFromUrl])
+
+  // ✅ Custom function to calculate age from birth date
+  const calculateAgeFromBirthDate = (birthDateValue) => {
+    if (!birthDateValue) return null
+    
+    const birthDate = new Date(birthDateValue)
+    const today = new Date()
+    
+    // Calculate age
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+    
+    // Adjust age if birthday hasn't occurred this year yet
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
     }
-  }, [campName, campIdFromQuery]);
+    
+    return age
+  }
 
-  // Optional: load public camps for select dropdown
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await axios.get(`${API_BASE}/camps/public`);
-        setCamps(res.data || []);
-      } catch (err) {
-        console.error("Error loading camps", err);
+  // ✅ Custom function to handle birth date changes
+  const handleBirthDateChange = (dateValue) => {
+    // Update form data
+    setFormData({ ...formData, dob: dateValue })
+    
+    // Calculate and set age using custom function
+    const age = calculateAgeFromBirthDate(dateValue)
+    setCalculatedAge(age)
+  }
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    
+    // Use custom function for birth date handling
+    if (name === 'dob') {
+      handleBirthDateChange(value)
+      return
+    }
+    
+    // Handle other form fields normally
+    setFormData({ ...formData, [name]: value })
+  }
+
+  // ✅ Send confirmation email
+  const sendEmail = async (donorData) => {
+    try {
+      const templateParams = {
+        to_email: donorData.email,
+        donor_name: donorData.name,
+        donor_age: calculatedAge,
+        donor_weight: donorData.weight,
+        donor_blood_group: donorData.bloodGroup,
+        donor_phone: donorData.phone,
+        donor_address: donorData.address,
+        donor_camp: donorData.camp,
+        registration_date: new Date().toLocaleDateString()
       }
-    };
-    load();
-  }, []);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+      await emailjs.send(
+        'service_tt2fcqh',
+        'template_wlnkbdh',
+        templateParams,
+        'NtoYnRvbn1y7ywGKq'
+      )
+
+      console.log('Email sent successfully!')
+    } catch (error) {
+      console.error('Failed to send email:', error)
+    }
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await axios.post(`${API_BASE}/donors`, form);
-      alert("Donor registered successfully!");
-      setForm({ name: "", age: "", weight: "", bloodGroup: "", email: "", phone: "", address: "", campId: campIdFromQuery || campName || "" });
-    } catch (err) {
-      console.error(err);
-      alert(err?.response?.data?.message || "Error registering donor");
-    } finally {
-      setLoading(false);
+    e.preventDefault()
+
+    if (calculatedAge < 18) {
+      alert('You must be at least 18 years old to register as a donor.')
+      return
     }
-  };
+
+    if (parseInt(formData.weight) < 50) {
+      alert('Minimum weight for donation should be 50 kg.')
+      return
+    }
+
+    try {
+     await axios.post('https://www.lifelinebloodcenter.org/api/donors', formData)
+      await sendEmail(formData)
+
+      alert('🎉 Registration successful! Check your email for confirmation.')
+      setFormData({
+        name: '', dob: '', weight: '', bloodGroup: '',
+        email: '', phone: '', address: '', camp: campLocked ? formData.camp : ''
+      })
+      setCalculatedAge(null)
+    } catch (err) {
+      alert('❌ Error submitting form. Please try again.')
+    }
+  }
 
   return (
-    <div className="container py-4">
-      <h3 className="text-danger mb-3">Donor Registration {campName && `for Camp: ${campName}`}</h3>
-      <form onSubmit={handleSubmit} className="border p-3 rounded bg-light">
-        <div className="mb-2">
-          <input className="form-control" name="name" placeholder="Name" value={form.name} onChange={handleChange} required />
+    <div className="donor-registration-container">
+      <div className="background-animation"></div>
+      <div className="registration-card">
+        <div className="card-header">
+          <div className="logo-container">
+            <img src={logo} alt="Donor Logo" className="logo" />
+          </div>
+          <h2 className="title">Donor Registration</h2>
+          <p className="subtitle">Join our life-saving community</p>
         </div>
-        <div className="mb-2">
-          <input className="form-control" name="age" type="number" placeholder="Age" value={form.age} onChange={handleChange} required />
-        </div>
-        <div className="mb-2">
-          <input className="form-control" name="weight" placeholder="Weight (kg)" value={form.weight} onChange={handleChange} />
-        </div>
+        
+        <form onSubmit={handleSubmit} className="registration-form">
+          <div className="form-group">
+            <input 
+              className="form-input" 
+              name="name" 
+              placeholder="Full Name" 
+              value={formData.name} 
+              onChange={handleChange} 
+              required 
+            />
+          </div>
 
-        <div className="mb-2">
-          <select className="form-select" name="bloodGroup" value={form.bloodGroup} onChange={handleChange} required>
-            <option value="">Select Blood Group</option>
-            {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(bg => <option key={bg} value={bg}>{bg}</option>)}
-          </select>
-        </div>
+          {/* ✅ Date of Birth Input */}
+          <div className="form-group">
+            <label className="form-label">Date of Birth</label>
+            <input 
+              className="form-input" 
+              name="dob" 
+              type="date" 
+              value={formData.dob} 
+              onChange={handleChange} 
+              required 
+            />
+          </div>
 
-        <div className="mb-2">
-          <input className="form-control" name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} />
-        </div>
+          {/* ✅ Show Age Preview */}
+          {calculatedAge !== null && (
+            <p className="age-preview">Calculated Age: {calculatedAge} years</p>
+          )}
 
-        <div className="mb-2">
-          <input className="form-control" name="phone" placeholder="Phone" value={form.phone} onChange={handleChange} required />
-        </div>
+          <div className="form-group">
+            <input 
+              className="form-input" 
+              name="weight" 
+              type="number" 
+              placeholder="Weight (kg)" 
+              value={formData.weight} 
+              onChange={handleChange} 
+              required 
+            />
+          </div>
 
-        {/* If camp was not pre-filled, show a select/dropdown */}
-        {!campName && !campIdFromQuery && (
-          <div className="mb-2">
-            <select className="form-select" name="campId" value={form.campId} onChange={handleChange} required>
-              <option value="">Choose a camp</option>
-              {camps.map(c => <option key={c._id} value={c._id}>{c.name} — {c.location}</option>)}
+          <div className="form-group">
+            <select 
+              className="form-select" 
+              name="bloodGroup" 
+              value={formData.bloodGroup} 
+              onChange={handleChange} 
+              required
+            >
+              <option value="">Select Blood Group</option>
+              {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', "Don't Know"].map(bg => (
+                <option key={bg} value={bg}>{bg}</option>
+              ))}
             </select>
           </div>
-        )}
 
-        <div className="mb-2">
-          <textarea className="form-control" name="address" placeholder="Address" value={form.address} onChange={handleChange} />
-        </div>
+          <div className="form-group">
+            <input 
+              className="form-input" 
+              name="email" 
+              type="email" 
+              placeholder="Email Address" 
+              value={formData.email} 
+              onChange={handleChange} 
+              required 
+            />
+          </div>
 
-        <button className="btn btn-danger" type="submit" disabled={loading}>{loading ? "Registering..." : "Register"}</button>
-      </form>
+          <div className="form-group">
+            <input 
+              className="form-input" 
+              name="phone" 
+              placeholder="Phone Number" 
+              value={formData.phone} 
+              onChange={handleChange} 
+              required 
+            />
+          </div>
+
+          <div className="form-group">
+            <textarea 
+              className="form-textarea" 
+              name="address" 
+              placeholder="Address" 
+              value={formData.address} 
+              onChange={handleChange} 
+              required 
+              rows="3"
+            />
+          </div>
+
+          <div className="form-group">
+            <select 
+              className="form-select" 
+              name="camp" 
+              value={formData.camp} 
+              onChange={handleChange} 
+              required 
+              disabled={campLocked}
+            >
+              <option value="">Select Camp</option>
+              {camps.map(c => (
+                <option key={c._id} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <button className="submit-btn" type="submit">
+            <span className="btn-text">Register as Donor</span>
+            <div className="btn-ripple"></div>
+          </button>
+        </form>
+      </div>
     </div>
-  );
-};
+  )
+}
 
-export default DonorRegistration;
+export default DonorRegistration
