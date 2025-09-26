@@ -17,7 +17,7 @@ export const initializeAdmin = async () => {
         email: 'lifelinebloodcenter26@gmail.com', // Correct email
         password: hashedPassword 
       });
-      console.log('✅ Default admin created: lifelinebloodcenter26@gmail.com / lifeline@org');
+      console.log('✅ Default admin created: lifelinebloodcenter26@gmail.com / lifeline@123');
     } else {
       console.log('✅ lifeline admin already exists');
     }
