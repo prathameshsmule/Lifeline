@@ -1,69 +1,15 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Bootstrap CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-      crossorigin="anonymous"
-    />
-
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-    <!-- Page title -->
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lifeline Blood Center</title>
-
-    <!-- Favicon / App Icons -->
-    <!-- Put your logo at: public/logo.png (512x512 preferred) -->
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="apple-touch-icon" href="/logo.png" />
-    <meta name="theme-color" content="#dc3545" />
-
-    <!-- (Optional) Basic SEO -->
-    <meta
-      name="description"
-      content="Lifeline Blood Center — organize blood donation camps, manage donors, and save lives."
-    />
-
-    <!-- (Optional) Open Graph for link previews -->
-    <meta property="og:title" content="Lifeline Blood Center" />
-    <meta
-      property="og:description"
-      content="Organize blood donation camps, manage donors, and save lives."
-    />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/logo.png" />
-    <meta property="og:url" content="https://www.lifelinebloodcenter.org" />
   </head>
-
   <body>
-    <!-- Bootstrap Bundle (JS) -->
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-      crossorigin="anonymous"
-    ></script>
-
-    <!-- Optional: tiny preloader with logo while React boots -->
-    <div id="preload" class="d-flex align-items-center justify-content-center" style="min-height: 40vh;">
-      <img src="/logo.png" alt="Lifeline Blood Center" style="height: 72px; width: 72px; object-fit: contain;" />
-    </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-
-    <script>
-      // Hide preloader once React mounts
-      window.addEventListener('DOMContentLoaded', () => {
-        const ro = new MutationObserver(() => {
-          const preload = document.getElementById('preload');
-          if (preload) preload.style.display = 'none';
-          ro.disconnect();
-        });
-        ro.observe(document.getElementById('root'), { childList: true });
-      });
-    </script>
   </body>
 </html>
