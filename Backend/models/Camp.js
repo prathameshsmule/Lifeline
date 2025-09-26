@@ -8,7 +8,7 @@ const campSchema = new mongoose.Schema({
   organizerName: { type: String },
   organizerContact: { type: String },
   proName: { type: String },
-  hospitalName: { type: String } 
+  hospitalName: { type: String }
 }, { timestamps: true })
 
 const Camp = mongoose.model('Camp', campSchema)
