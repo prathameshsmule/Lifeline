@@ -66,27 +66,21 @@ router.get('/:id', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Error fetching camp', error: err.message });
   }
 });
-
-/**
- * 🔧 Admin: Update a camp (partial update)
- * PUT /api/camps/:id
- * Body: any of { name, location, date, organizerName, organizerContact, proName, hospitalName }
- */
 router.put('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('PUT /api/camps/:id', { id, body: req.body }); // <— add this
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid Camp ID' });
     }
 
-    // Whitelist fields you allow to be updated
     const allowed = ['name', 'location', 'date', 'organizerName', 'organizerContact', 'proName', 'hospitalName'];
     const payload = {};
     for (const key of allowed) {
-      if (key in req.body) payload[key] = req.body[key];
+      if (key in req.body && req.body[key] !== "") payload[key] = req.body[key];
     }
 
-    // Unique name check (only if name is being changed)
     if (payload.name) {
       const sameName = await Camp.findOne({ name: payload.name, _id: { $ne: id } });
       if (sameName) {
@@ -103,6 +97,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Error updating camp', error: err.message });
   }
 });
+
 
 // ❌ REMOVE this duplicate/protected GET block — it has a syntax error `);s` and conflicts the public GET above.
 // router.get('/', verifyToken, async (req, res) => {
