@@ -5,7 +5,7 @@ import emailjs from '@emailjs/browser';
 import logo from '../assets/images/blood donor.png';
 import '../styles/DonorRegistration.css';
 
-const API_BASE = import.meta.env.VITE_API_BASE || "https://www.lifelinebloodcenter.org/api";
+const API_BASE = "https://www.lifelinebloodcenter.org/api";
 
 const DonorRegistration = () => {
   const location = useLocation();
@@ -14,9 +14,6 @@ const DonorRegistration = () => {
 
   const [camps, setCamps] = useState([]);
   const [loadingCamps, setLoadingCamps] = useState(true);
-  const [campLocked, setCampLocked] = useState(false);
-  const [calculatedAge, setCalculatedAge] = useState(null);
-
   const [formData, setFormData] = useState({
     name: '',
     dob: '',
@@ -27,25 +24,27 @@ const DonorRegistration = () => {
     address: '',
     camp: ''
   });
+  const [calculatedAge, setCalculatedAge] = useState(null);
+  const [campLocked, setCampLocked] = useState(false);
 
   // Initialize EmailJS once
   useEffect(() => {
-    emailjs.init('NtoYnRvbn1y7ywGKq'); // <- your public key
+    emailjs.init('NtoYnRvbn1y7ywGKq');
   }, []);
 
-  // Fetch camps (PUBLIC GET /camps)
+  // Fetch camps
   useEffect(() => {
     const fetchCamps = async () => {
       setLoadingCamps(true);
       try {
         const res = await axios.get(`${API_BASE}/camps`);
-        setCamps(res.data || []);
+        setCamps(res.data);
 
-        // Preselect & lock camp if provided in query
+        // Preselect camp if campIdFromUrl exists
         if (campIdFromUrl) {
-          const selected = res.data.find(c => c._id === campIdFromUrl);
-          if (selected) {
-            setFormData(prev => ({ ...prev, camp: selected._id }));
+          const selectedCamp = res.data.find(c => c._id === campIdFromUrl);
+          if (selectedCamp) {
+            setFormData(prev => ({ ...prev, camp: selectedCamp._id }));
             setCampLocked(true);
           }
         }
@@ -57,7 +56,7 @@ const DonorRegistration = () => {
       }
     };
     fetchCamps();
-  }, [API_BASE, campIdFromUrl]);
+  }, [campIdFromUrl]);
 
   const calculateAge = (dobValue) => {
     if (!dobValue) return null;
@@ -72,7 +71,10 @@ const DonorRegistration = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (name === 'dob') setCalculatedAge(calculateAge(value));
+
+    if (name === 'dob') {
+      setCalculatedAge(calculateAge(value));
+    }
   };
 
   const sendEmail = async (donorData) => {
@@ -89,27 +91,28 @@ const DonorRegistration = () => {
         donor_camp: campName,
         registration_date: new Date().toLocaleDateString()
       };
-      await emailjs.send('service_tt2fcqh', 'template_wlnkbdh', templateParams, 'NtoYnRvbn1y7ywGKq');
+      await emailjs.send(
+        'service_tt2fcqh',
+        'template_wlnkbdh',
+        templateParams,
+        'NtoYnRvbn1y7ywGKq'
+      );
+      console.log("Email sent successfully!");
     } catch (error) {
       console.error("Failed to send email:", error);
-      // Don’t block the UI on email failure.
     }
-  };
-
-  const validate = () => {
-    if (!formData.name || !formData.dob || !formData.weight || !formData.bloodGroup ||
-        !formData.email || !formData.phone || !formData.address || !formData.camp) {
-      return "Please fill all required fields.";
-    }
-    if (calculatedAge === null || calculatedAge < 18) return "Minimum age 18 required.";
-    if (parseInt(formData.weight, 10) < 50) return "Minimum weight 50kg required.";
-    return "";
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const v = validate();
-    if (v) { alert(v); return; }
+    if (!calculatedAge || calculatedAge < 18) {
+      alert("Minimum age 18 required");
+      return;
+    }
+    if (parseInt(formData.weight) < 50) {
+      alert("Minimum weight 50kg required");
+      return;
+    }
 
     try {
       await axios.post(`${API_BASE}/donors`, formData);
@@ -178,7 +181,7 @@ const DonorRegistration = () => {
             required
           >
             <option value="">Select Blood Group</option>
-            {['A+','A-','B+','B-','AB+','AB-','O+','O-',"Don't Know"].map(bg => (
+            {['A+','A-','B+','B-','AB+','AB-','O+','O-', "Don't Know"].map(bg => (
               <option key={bg} value={bg}>{bg}</option>
             ))}
           </select>
