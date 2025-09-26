@@ -435,7 +435,7 @@ const Admin = () => {
       {/* Tabs (row 1) */}
  {/* Tabs (row 1) */}
 <div className="border rounded p-2 mb-2 filter-bar card-soft">
-  <div className="d-flex align-items-center gap-2 flex-wrap">
+  <div className="tabs-center">
     <div className="btn-group" role="group" aria-label="Camp tabs">
 
             <button
