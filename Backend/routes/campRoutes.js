@@ -6,9 +6,7 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-/**
- * ADMIN: Add new camp
- */
+/** ADMIN: Add camp */
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { name, location, date, organizerName, organizerContact, proName, hospitalName } = req.body;
@@ -25,22 +23,17 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-/**
- * PUBLIC: list camps (used by donor registration dropdown)
- *  - no token required
- */
+/** PUBLIC: list camps (for donor dropdown) */
 router.get('/', async (_req, res) => {
   try {
     const camps = await Camp.find().sort({ date: -1 });
-    return res.json(camps);
+  return res.json(camps);
   } catch (err) {
     return res.status(500).json({ message: 'Error fetching camps', error: err.message });
   }
 });
 
-/**
- * ADMIN: list all camps with donor counts
- */
+/** ADMIN: list camps with donor counts */
 router.get('/with-count', verifyToken, async (_req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 });
@@ -56,9 +49,7 @@ router.get('/with-count', verifyToken, async (_req, res) => {
   }
 });
 
-/**
- * ADMIN: single camp (with donor count)
- */
+/** ADMIN: single camp (with donor count) */
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
