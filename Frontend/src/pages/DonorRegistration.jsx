@@ -1,146 +1,194 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import axios from 'axios';
-import emailjs from '@emailjs/browser';
-import logo from '../assets/images/blood donor.png';
-import '../styles/DonorRegistration.css';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { Form, Button, Container, Row, Col, Alert, Spinner } from "react-bootstrap";
+// Optional: EmailJS (uncomment if needed)
+// import emailjs from "@emailjs/browser";
 
-const API_BASE = "https://www.lifelinebloodcenter.org/api";
+const API_BASE = "https://www.lifelinebloodcenter.org/api"; 
+// Change to your backend URL on Hostinger if different
 
 const DonorRegistration = () => {
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const campIdFromUrl = queryParams.get('campId');
-
-  const [formData, setFormData] = useState({
-    name: '', dob: '', weight: '', bloodGroup: '',
-    email: '', phone: '', address: '', camp: ''
+  const [donor, setDonor] = useState({
+    name: "",
+    age: "",
+    gender: "",
+    bloodGroup: "",
+    email: "",
+    phone: "",
+    campId: "",
   });
 
   const [camps, setCamps] = useState([]);
-  const [campLocked, setCampLocked] = useState(false);
-  const [calculatedAge, setCalculatedAge] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
 
-  // Initialize EmailJS
+  // ✅ Load camps from backend
   useEffect(() => {
-    emailjs.init('NtoYnRvbn1y7ywGKq');
+    const fetchCamps = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/camps`);
+        setCamps(res.data);
+      } catch (err) {
+        console.error(err);
+        setError("Unable to load camps. Please try again later.");
+      }
+    };
+    fetchCamps();
   }, []);
 
-  // Fetch camps
-  useEffect(() => {
-    axios.get(`${API_BASE}/camps/public`)
-      .then(res => {
-        setCamps(res.data);
-        if (campIdFromUrl) {
-          const selectedCamp = res.data.find(c => c._id === campIdFromUrl);
-          if (selectedCamp) {
-            setFormData(prev => ({ ...prev, camp: selectedCamp._id }));
-            setCampLocked(true);
-          }
-        }
-      })
-      .catch(() => setCamps([]));
-  }, [campIdFromUrl]);
-
-  // Calculate age
-  const calculateAgeFromBirthDate = (birthDateValue) => {
-    if (!birthDateValue) return null;
-    const birthDate = new Date(birthDateValue);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-  };
-
-  const handleBirthDateChange = (dateValue) => {
-    setFormData({ ...formData, dob: dateValue });
-    setCalculatedAge(calculateAgeFromBirthDate(dateValue));
-  };
-
+  // ✅ Handle input changes
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'dob') {
-      handleBirthDateChange(value);
-      return;
-    }
-    setFormData({ ...formData, [name]: value });
+    setDonor({ ...donor, [e.target.name]: e.target.value });
   };
 
-  const sendEmail = async (donorData) => {
-    try {
-      const templateParams = {
-        to_email: donorData.email,
-        donor_name: donorData.name,
-        donor_age: calculatedAge,
-        donor_weight: donorData.weight,
-        donor_blood_group: donorData.bloodGroup,
-        donor_phone: donorData.phone,
-        donor_address: donorData.address,
-        donor_camp: camps.find(c => c._id === donorData.camp)?.name || "",
-        registration_date: new Date().toLocaleDateString()
-      };
-      await emailjs.send(
-        'service_tt2fcqh',
-        'template_wlnkbdh',
-        templateParams,
-        'NtoYnRvbn1y7ywGKq'
-      );
-    } catch (error) {
-      console.error('Failed to send email:', error);
-    }
-  };
-
+  // ✅ Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (calculatedAge < 18) return alert('You must be at least 18 years old to register as a donor.');
-    if (parseInt(formData.weight) < 50) return alert('Minimum weight for donation should be 50 kg.');
+    setLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
-      await axios.post(`${API_BASE}/donors`, formData);
-      await sendEmail(formData);
-      alert('🎉 Registration successful! Check your email for confirmation.');
-      setFormData({ name: '', dob: '', weight: '', bloodGroup: '', email: '', phone: '', address: '', camp: campLocked ? formData.camp : '' });
-      setCalculatedAge(null);
+      // Send donor data to backend
+      const res = await axios.post(`${API_BASE}/donors`, donor);
+
+      // ✅ Optional: send email via EmailJS (uncomment and configure)
+      /*
+      await emailjs.send(
+        "your_service_id",
+        "your_template_id",
+        {
+          donor_name: donor.name,
+          donor_email: donor.email,
+          donor_phone: donor.phone,
+        },
+        "your_public_key"
+      );
+      */
+
+      setSuccess("Registration successful!");
+      setDonor({
+        name: "",
+        age: "",
+        gender: "",
+        bloodGroup: "",
+        email: "",
+        phone: "",
+        campId: "",
+      });
     } catch (err) {
-      alert('❌ Error submitting form. Please try again.');
+      console.error(err);
+      setError(err.response?.data?.message || "Something went wrong. Try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="donor-registration-container">
-      <div className="background-animation"></div>
-      <div className="registration-card">
-        <div className="card-header">
-          <img src={logo} alt="Donor Logo" className="logo" />
-          <h2 className="title">Donor Registration</h2>
-        </div>
-        <form onSubmit={handleSubmit} className="registration-form">
-          <input className="form-input" name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} required />
-          <label>Date of Birth</label>
-          <input className="form-input" name="dob" type="date" value={formData.dob} onChange={handleChange} required />
-          {calculatedAge !== null && <p>Age: {calculatedAge} years</p>}
-          <input className="form-input" name="weight" type="number" placeholder="Weight (kg)" value={formData.weight} onChange={handleChange} required />
-          <select className="form-select" name="bloodGroup" value={formData.bloodGroup} onChange={handleChange} required>
-            <option value="">Select Blood Group</option>
-            {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', "Don't Know"].map(bg => <option key={bg} value={bg}>{bg}</option>)}
-          </select>
-          <input className="form-input" name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
-          <input className="form-input" name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} required />
-          <textarea className="form-textarea" name="address" placeholder="Address" value={formData.address} onChange={handleChange} rows="3" required />
-          {!campLocked && (
-            <select className="form-select" name="camp" value={formData.camp} onChange={handleChange} required>
-              <option value="">Select Camp</option>
-              {camps.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-            </select>
-          )}
-          {campLocked && <input type="hidden" name="camp" value={formData.camp} />}
-          <button className="submit-btn" type="submit">Register as Donor</button>
-        </form>
-      </div>
-    </div>
+    <Container className="my-5">
+      <Row className="justify-content-center">
+        <Col md={6}>
+          <h2 className="text-center mb-4">Donor Registration</h2>
+          {error && <Alert variant="danger">{error}</Alert>}
+          {success && <Alert variant="success">{success}</Alert>}
+
+          <Form onSubmit={handleSubmit}>
+            <Form.Group className="mb-3">
+              <Form.Label>Name</Form.Label>
+              <Form.Control
+                type="text"
+                name="name"
+                value={donor.name}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Age</Form.Label>
+              <Form.Control
+                type="number"
+                name="age"
+                value={donor.age}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Gender</Form.Label>
+              <Form.Select
+                name="gender"
+                value={donor.gender}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Blood Group</Form.Label>
+              <Form.Control
+                type="text"
+                name="bloodGroup"
+                placeholder="e.g. O+, A-, AB+"
+                value={donor.bloodGroup}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Email</Form.Label>
+              <Form.Control
+                type="email"
+                name="email"
+                value={donor.email}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Phone</Form.Label>
+              <Form.Control
+                type="text"
+                name="phone"
+                value={donor.phone}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Select Camp</Form.Label>
+              <Form.Select
+                name="campId"
+                value={donor.campId}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Choose a camp</option>
+                {camps.map((camp) => (
+                  <option key={camp._id} value={camp._id}>
+                    {camp.name} – {camp.location}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+
+            <Button variant="primary" type="submit" disabled={loading} className="w-100">
+              {loading ? <Spinner animation="border" size="sm" /> : "Register"}
+            </Button>
+          </Form>
+        </Col>
+      </Row>
+    </Container>
   );
 };
 
