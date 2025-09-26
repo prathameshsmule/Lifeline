@@ -5,7 +5,6 @@ import { QRCodeCanvas } from "qrcode.react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-// Use your deployed API base
 const API_BASE = "https://www.lifelinebloodcenter.org/api";
 
 const Admin = () => {
@@ -34,17 +33,13 @@ const Admin = () => {
   useEffect(() => {
     if (!token) return navigate("/admin-login");
     fetchCamps();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (selectedCamp) fetchDonors();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCamp]);
+  }, [selectedCamp]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // =========================
-  // Camps
-  // =========================
+  // ✅ Fetch all camps WITH donor counts
   const fetchCamps = async () => {
     setLoadingCamps(true);
     try {
@@ -59,6 +54,28 @@ const Admin = () => {
     } finally {
       setLoadingCamps(false);
     }
+  };
+
+  // Fetch donors for selected camp
+  const fetchDonors = async () => {
+    setLoadingDonors(true);
+    try {
+      const res = await axios.get(`${API_BASE}/donors/camp/${selectedCamp}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDonors(res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch donors:", err.response || err);
+      setDonors([]);
+      if ([401, 403].includes(err.response?.status)) handleLogout();
+    } finally {
+      setLoadingDonors(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("admin-token");
+    navigate("/admin-login");
   };
 
   const handleNewCampChange = (e) => {
@@ -80,58 +97,11 @@ const Admin = () => {
         proName: "",
         hospitalName: "",
       });
-      await fetchCamps();
+      await fetchCamps(); // refresh list (with counts)
       alert("Camp added successfully!");
     } catch (err) {
       console.error(err.response || err);
-      alert(err?.response?.data?.message || "Error adding camp.");
-    }
-  };
-
-  const handleDeleteCamp = async (campId) => {
-    if (
-      !window.confirm(
-        "Delete this camp and ALL its donors? This cannot be undone."
-      )
-    )
-      return;
-
-    try {
-      await axios.delete(`${API_BASE}/camps/${campId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      // If the deleted camp was selected, clear donor table and selection
-      if (selectedCamp === campId) {
-        setSelectedCamp(null);
-        setDonors([]);
-      }
-
-      await fetchCamps();
-      alert("Camp deleted successfully");
-    } catch (err) {
-      console.error(err.response || err);
-      alert(err?.response?.data?.message || "Error deleting camp");
-    }
-  };
-
-  // =========================
-  // Donors
-  // =========================
-  const fetchDonors = async () => {
-    if (!selectedCamp) return;
-    setLoadingDonors(true);
-    try {
-      const res = await axios.get(`${API_BASE}/donors/camp/${selectedCamp}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setDonors(res.data || []);
-    } catch (err) {
-      console.error("Failed to fetch donors:", err.response || err);
-      setDonors([]);
-      if ([401, 403].includes(err.response?.status)) handleLogout();
-    } finally {
-      setLoadingDonors(false);
+      alert("Error adding camp.");
     }
   };
 
@@ -141,12 +111,12 @@ const Admin = () => {
       await axios.delete(`${API_BASE}/donors/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      await fetchDonors(); // donor list
-      await fetchCamps(); // refresh counts on camp cards
+      await fetchDonors(); // refresh donor table
+      await fetchCamps();  // ✅ refresh counts on cards
       alert("Donor deleted successfully!");
     } catch (err) {
       console.error(err.response || err);
-      alert(err?.response?.data?.message || "Error deleting donor");
+      alert("Error deleting donor");
     }
   };
 
@@ -161,26 +131,16 @@ const Admin = () => {
 
   const handleEditSave = async (id) => {
     try {
-      const { _id, ...payload } = editForm;
-      const res = await axios.put(`${API_BASE}/donors/${id}`, payload, {
+      await axios.put(`${API_BASE}/donors/${id}`, editForm, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const updated = res.data?.donor || payload;
-      setDonors((prev) => prev.map((d) => (d._id === id ? updated : d)));
+      setDonors((prev) => prev.map((d) => (d._id === id ? { ...editForm } : d)));
       setEditDonorId(null);
-      // counts don't change on edit
+      // count doesn't change on edit, no need to refetch camps
     } catch (err) {
       console.error(err.response || err);
-      alert(err?.response?.data?.message || "Error saving donor update");
+      alert("Error saving donor update");
     }
-  };
-
-  // =========================
-  // Utils
-  // =========================
-  const handleLogout = () => {
-    localStorage.removeItem("admin-token");
-    navigate("/admin-login");
   };
 
   const downloadPDF = () => {
@@ -219,7 +179,7 @@ const Admin = () => {
   };
 
   const filteredDonors = donors.filter((d) =>
-    `${d.name ?? ""} ${d.bloodGroup ?? ""} ${d.phone ?? ""}`
+    `${d.name} ${d.bloodGroup} ${d.phone}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
@@ -319,44 +279,30 @@ const Admin = () => {
                     <strong>Donors Registered:</strong>{" "}
                     {typeof camp.donorCount === "number" ? camp.donorCount : 0}
                   </p>
-
-                  <div className="d-flex flex-wrap gap-2">
-                    <button
-                      className="btn btn-outline-danger btn-sm"
-                      onClick={() => setSelectedCamp(camp._id)}
-                    >
-                      View Donors
-                    </button>
-
-                    <button
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => {
-                        const link = `${window.location.origin}/register?campId=${camp._id}`;
-                        navigator.clipboard.writeText(link);
-                        alert(`✅ Registration link copied:\n${link}`);
-                      }}
-                    >
-                      Copy Registration Link
-                    </button>
-
-                    <button
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={() =>
-                        setShowQR((prev) => ({ ...prev, [camp._id]: !prev[camp._id] }))
-                      }
-                    >
-                      {showQR[camp._id] ? "Hide QR" : "Show QR"}
-                    </button>
-
-                    {/* NEW: Delete Camp */}
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() => handleDeleteCamp(camp._id)}
-                    >
-                      Delete Camp
-                    </button>
-                  </div>
-
+                  <button
+                    className="btn btn-outline-danger btn-sm me-2"
+                    onClick={() => setSelectedCamp(camp._id)}
+                  >
+                    View Donors
+                  </button>
+                  <button
+                    className="btn btn-sm btn-outline-primary me-2"
+                    onClick={() => {
+                      const link = `${window.location.origin}/register?campId=${camp._id}`;
+                      navigator.clipboard.writeText(link);
+                      alert(`✅ Registration link copied:\n${link}`);
+                    }}
+                  >
+                    Copy Registration Link
+                  </button>
+                  <button
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() =>
+                      setShowQR((prev) => ({ ...prev, [camp._id]: !prev[camp._id] }))
+                    }
+                  >
+                    {showQR[camp._id] ? "Hide QR" : "Show QR"}
+                  </button>
                   {showQR[camp._id] && (
                     <div className="mt-2">
                       <QRCodeCanvas
@@ -426,7 +372,7 @@ const Admin = () => {
                             <input
                               className="form-control form-control-sm"
                               name="name"
-                              value={editForm.name ?? ""}
+                              value={editForm.name}
                               onChange={handleEditChange}
                             />
                           ) : (
@@ -438,7 +384,7 @@ const Admin = () => {
                             <select
                               className="form-select form-select-sm"
                               name="bloodGroup"
-                              value={editForm.bloodGroup ?? ""}
+                              value={editForm.bloodGroup}
                               onChange={handleEditChange}
                             >
                               <option value="">Select</option>
@@ -459,7 +405,7 @@ const Admin = () => {
                             <input
                               className="form-control form-control-sm"
                               name="age"
-                              value={editForm.age ?? ""}
+                              value={editForm.age}
                               onChange={handleEditChange}
                             />
                           ) : (
@@ -471,7 +417,7 @@ const Admin = () => {
                             <input
                               className="form-control form-control-sm"
                               name="weight"
-                              value={editForm.weight ?? ""}
+                              value={editForm.weight}
                               onChange={handleEditChange}
                             />
                           ) : (
@@ -483,7 +429,7 @@ const Admin = () => {
                             <input
                               className="form-control form-control-sm"
                               name="email"
-                              value={editForm.email ?? ""}
+                              value={editForm.email}
                               onChange={handleEditChange}
                             />
                           ) : (
@@ -495,7 +441,7 @@ const Admin = () => {
                             <input
                               className="form-control form-control-sm"
                               name="phone"
-                              value={editForm.phone ?? ""}
+                              value={editForm.phone}
                               onChange={handleEditChange}
                             />
                           ) : (
@@ -507,7 +453,7 @@ const Admin = () => {
                             <input
                               className="form-control form-control-sm"
                               name="address"
-                              value={editForm.address ?? ""}
+                              value={editForm.address}
                               onChange={handleEditChange}
                             />
                           ) : (
