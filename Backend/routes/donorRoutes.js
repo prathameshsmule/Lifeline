@@ -1,84 +1,96 @@
-// routes/donorRoutes.js
 import express from 'express'
-import mongoose from 'mongoose'
 import Donor from '../models/Donor.js'
-import { verifyToken } from '../middleware/authMiddleware.js' // keep for protected routes
+import { verifyToken } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-// PUBLIC: Register donor (POST /api/donors)
+// ✅ Helper: Calculate age from DOB
+const calculateAge = (dob) => {
+  const birthDate = new Date(dob)
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const m = today.getMonth() - birthDate.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  return age
+}
+
+// ✅ Register Donor
 router.post('/', async (req, res) => {
   try {
-    const payload = req.body
+    const { name, dob, weight, bloodGroup, email, phone, address, camp } = req.body
 
-    // Basic validation
-    if (!payload.name || !payload.age || !payload.bloodGroup || !payload.phone || !payload.camp) {
-      return res.status(400).json({ message: 'Missing required fields: name, age, bloodGroup, phone and camp' })
-    }
+    const age = calculateAge(dob)
 
-    // If camp passed as string id, keep it; otherwise find by name (optional)
-    // Ensure camp is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(payload.camp)) {
-      return res.status(400).json({ message: 'Invalid camp id' })
-    }
+    if (age < 18) return res.status(400).json({ message: 'Age must be 18 or above' })
+    if (weight < 50) return res.status(400).json({ message: 'Minimum weight must be 50kg' })
+    if (!camp) return res.status(400).json({ message: 'Camp is required' })
 
-    const donor = new Donor(payload)
+    const donor = new Donor({ name, dob, age, weight, bloodGroup, email, phone, address, camp })
     await donor.save()
+
     res.status(201).json({ message: 'Donor registered successfully', donor })
-  } catch (err) {
-    console.error('Error registering donor', err)
-    res.status(500).json({ message: 'Error registering donor', error: err.message })
+  } catch (error) {
+    res.status(500).json({ message: 'Error registering donor', error: error.message })
   }
 })
 
-// PROTECTED: Get donors by camp (GET /api/donors/camp/:campId)
-router.get('/camp/:campId', verifyToken, async (req, res) => {
+// ✅ Get All Donors
+router.get('/', verifyToken, async (req, res) => {
   try {
-    const { campId } = req.params
-    if (!mongoose.Types.ObjectId.isValid(campId)) return res.status(400).json({ message: 'Invalid Camp ID' })
-    const donors = await Donor.find({ camp: campId }).sort({ name: 1 })
+    const donors = await Donor.find().sort({ createdAt: -1 })
     res.json(donors)
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching donors', error: err.message })
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching donors', error: error.message })
   }
 })
 
-// PROTECTED: Update donor
+// ✅ Get Donors by Camp
+router.get('/camp/:campName', verifyToken, async (req, res) => {
+  try {
+    const { campName } = req.params
+    const donors = await Donor.find({ camp: campName }).sort({ createdAt: -1 })
+    res.json(donors)
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching donors by camp', error: error.message })
+  }
+})
+
+// ✅ Update Donor
 router.put('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params
-    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid Donor ID' })
-    const donor = await Donor.findByIdAndUpdate(id, req.body, { new: true })
-    if (!donor) return res.status(404).json({ message: 'Donor not found' })
-    res.json({ message: 'Donor updated successfully', donor })
-  } catch (err) {
-    res.status(500).json({ message: 'Error updating donor', error: err.message })
+    const updateFields = { ...req.body }
+
+    if (updateFields.dob) {
+      updateFields.age = calculateAge(updateFields.dob)
+    }
+
+    const updatedDonor = await Donor.findByIdAndUpdate(
+      id,
+      updateFields,
+      { new: true }
+    )
+
+    if (!updatedDonor) return res.status(404).json({ message: 'Donor not found' })
+
+    res.json({ message: 'Donor updated successfully', donor: updatedDonor })
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating donor', error: error.message })
   }
 })
 
-// PROTECTED: Delete donor
+// ✅ Delete Donor
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params
-    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid Donor ID' })
-    const donor = await Donor.findByIdAndDelete(id)
-    if (!donor) return res.status(404).json({ message: 'Donor not found' })
+    const deleted = await Donor.findByIdAndDelete(id)
+    if (!deleted) return res.status(404).json({ message: 'Donor not found' })
+
     res.json({ message: 'Donor deleted successfully' })
   } catch (err) {
     res.status(500).json({ message: 'Error deleting donor', error: err.message })
-  }
-})
-
-// PROTECTED: Get a single donor
-router.get('/:id', verifyToken, async (req, res) => {
-  try {
-    const { id } = req.params
-    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid Donor ID' })
-    const donor = await Donor.findById(id)
-    if (!donor) return res.status(404).json({ message: 'Donor not found' })
-    res.json(donor)
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching donor', error: err.message })
   }
 })
 
