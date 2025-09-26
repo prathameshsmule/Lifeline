@@ -309,7 +309,7 @@ const Admin = () => {
                           </>
                         )}
                       </td>
-                    </tr>
+                    </tr> 
                   ))}
                 </tbody>
               </table>
