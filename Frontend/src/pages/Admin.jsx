@@ -28,13 +28,13 @@ const Admin = () => {
     hospitalName: "",
   });
 
-  // Filters / Tabs
+  // Tabs & filters
   const [campQuery, setCampQuery] = useState("");
-  const [onlyComingSoon, setOnlyComingSoon] = useState(false); // ≤7 days
-  const [upcomingSort, setUpcomingSort] = useState("date-asc");
-  const [doneSort, setDoneSort] = useState("date-desc");
-  const [allSort, setAllSort] = useState("date-desc");
-  const [tab, setTab] = useState("all"); // ✅ open on ALL first
+  const [onlyComingSoon, setOnlyComingSoon] = useState(false); // ≤ 7 days
+  const [upcomingSort, setUpcomingSort] = useState("date-asc"); // date-asc | date-desc
+  const [doneSort, setDoneSort] = useState("date-desc");       // date-desc | date-asc
+  const [allSort, setAllSort] = useState("date-desc");         // date-desc | date-asc
+  const [tab, setTab] = useState("all"); // all | upcoming | done  (All first)
 
   const navigate = useNavigate();
   const token = localStorage.getItem("admin-token");
@@ -64,7 +64,10 @@ const Admin = () => {
     const diffMs = target - today;
     return Math.floor(diffMs / (1000 * 60 * 60 * 24));
   };
-  const isUpcoming = (d) => (d ? daysUntil(d) >= 0 : false);
+  const isUpcoming = (d) => {
+    if (!d) return false;
+    return daysUntil(d) >= 0;
+  };
   const isSoon = (d, windowDays = 7) => {
     if (!d) return false;
     const du = daysUntil(d);
@@ -115,7 +118,9 @@ const Admin = () => {
   };
 
   // ========= Add Camp =========
-  const handleNewCampChange = (e) => setNewCamp({ ...newCamp, [e.target.name]: e.target.value });
+  const handleNewCampChange = (e) => {
+    setNewCamp({ ...newCamp, [e.target.name]: e.target.value });
+  };
 
   const handleNewCampSubmit = async (e) => {
     e.preventDefault();
@@ -148,7 +153,7 @@ const Admin = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       await fetchDonors();
-      await fetchCamps();
+      await fetchCamps(); // refresh counts
       alert("Donor deleted successfully!");
     } catch (err) {
       console.error(err.response || err);
@@ -161,7 +166,9 @@ const Admin = () => {
     setEditForm({ ...donor });
   };
 
-  const handleEditChange = (e) => setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  const handleEditChange = (e) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  };
 
   const handleEditSave = async (id) => {
     try {
@@ -284,7 +291,7 @@ const Admin = () => {
     const past = isPastOverride ?? !isUpcoming(toDate(camp?.date));
     return (
       <div className="col-md-4">
-        <div className="card h-100 camp-card">
+        <div className="card h-100">
           <div className="card-body">
             <h5 className="card-title text-danger d-flex justify-content-between align-items-start">
               <span>{camp.name}</span>
@@ -374,7 +381,7 @@ const Admin = () => {
         </div>
       </div>
 
-      {/* URGENT (only for upcoming) */}
+      {/* URGENT BANNER (Upcoming tab only) */}
       {tab === "upcoming" && !!urgentCamps.length && (
         <div className="alert alert-warning d-flex align-items-center gap-2 mt-3" role="alert">
           <strong>Heads up:</strong>
@@ -393,9 +400,9 @@ const Admin = () => {
         </div>
       )}
 
-      {/* Add Camp */}
-      <form onSubmit={handleNewCampSubmit} className="border p-3 rounded mb-4 bg-light card-soft">
-        <h5 className="mb-3">Add New Camp</h5>
+      {/* Add Camp Form */}
+      <form onSubmit={handleNewCampSubmit} className="border p-3 rounded mb-4 bg-light">
+        <h5>Add New Camp</h5>
         <div className="row g-2">
           {["name", "location", "date", "organizerName", "organizerContact", "proName"].map((field, idx) => (
             <div className="col-md-4" key={idx}>
@@ -432,40 +439,38 @@ const Admin = () => {
         </button>
       </form>
 
-      {/* Tabs (row 1) */}
- {/* Tabs (row 1) */}
-<div className="border rounded p-2 mb-2 filter-bar card-soft">
-  <div className="tabs-center">
-    <div className="btn-group" role="group" aria-label="Camp tabs">
-
-            <button
-              type="button"
-              className={`btn ${tab === "upcoming" ? "btn-danger" : "btn-outline-danger"}`}
-              onClick={() => setTab("upcoming")}
-            >
-              Upcoming
-            </button>
-            <button
-              type="button"
-              className={`btn ${tab === "all" ? "btn-danger" : "btn-outline-danger"}`}
-              onClick={() => setTab("all")}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              className={`btn ${tab === "done" ? "btn-danger" : "btn-outline-danger"}`}
-              onClick={() => setTab("done")}
-            >
-              Done
-            </button>
-          </div>
+      {/* Tabs (centered) */}
+      <div className="d-flex justify-content-center mb-2">
+        <div className="btn-group admin-tabs" role="group" aria-label="Camp tabs">
+          <button
+            type="button"
+            className={`btn ${tab === "all" ? "btn-danger" : "btn-outline-danger"}`}
+            onClick={() => setTab("all")}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            className={`btn ${tab === "upcoming" ? "btn-danger" : "btn-outline-danger"}`}
+            onClick={() => setTab("upcoming")}
+          >
+            Upcoming
+          </button>
+          <button
+            type="button"
+            className={`btn ${tab === "done" ? "btn-danger" : "btn-outline-danger"}`}
+            onClick={() => setTab("done")}
+          >
+            Done
+          </button>
         </div>
+      </div>
 
-        {/* Search + per-tab filters (row 2) */}
-        <div className="d-flex align-items-end gap-3 flex-wrap mt-3">
-          <div className="flex-grow-1" style={{ minWidth: 280 }}>
-            <label className="form-label mb-1">Search camps</label>
+      {/* Search + per-tab filters (next line) */}
+      <div className="border p-3 rounded mb-3">
+        <div className="row g-2 align-items-end">
+          <div className="col-md-6">
+            <label className="form-label">Search camps</label>
             <input
               type="text"
               className="form-control"
@@ -475,10 +480,20 @@ const Admin = () => {
             />
           </div>
 
+          {tab === "all" && (
+            <div className="col-md-3">
+              <label className="form-label">Sort by</label>
+              <select className="form-select" value={allSort} onChange={(e) => setAllSort(e.target.value)}>
+                <option value="date-desc">Date: Most recent first</option>
+                <option value="date-asc">Date: Oldest first</option>
+              </select>
+            </div>
+          )}
+
           {tab === "upcoming" && (
             <>
-              <div>
-                <label className="form-label mb-1">Sort by</label>
+              <div className="col-md-3">
+                <label className="form-label">Sort by</label>
                 <select
                   className="form-select"
                   value={upcomingSort}
@@ -488,34 +503,26 @@ const Admin = () => {
                   <option value="date-desc">Date: Latest first</option>
                 </select>
               </div>
-              <div className="form-check mt-4">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="onlySoon"
-                  checked={onlyComingSoon}
-                  onChange={(e) => setOnlyComingSoon(e.target.checked)}
-                />
-                <label className="form-check-label" htmlFor="onlySoon">
-                  Coming soon (≤ 7 days)
-                </label>
+              <div className="col-md-3 d-flex align-items-center">
+                <div className="form-check mt-4">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id="onlySoon"
+                    checked={onlyComingSoon}
+                    onChange={(e) => setOnlyComingSoon(e.target.checked)}
+                  />
+                  <label className="form-check-label" htmlFor="onlySoon">
+                    Coming soon (≤ 7 days)
+                  </label>
+                </div>
               </div>
             </>
           )}
 
-          {tab === "all" && (
-            <div>
-              <label className="form-label mb-1">Sort by</label>
-              <select className="form-select" value={allSort} onChange={(e) => setAllSort(e.target.value)}>
-                <option value="date-desc">Date: Most recent first</option>
-                <option value="date-asc">Date: Oldest first</option>
-              </select>
-            </div>
-          )}
-
           {tab === "done" && (
-            <div>
-              <label className="form-label mb-1">Sort by</label>
+            <div className="col-md-3">
+              <label className="form-label">Sort by</label>
               <select className="form-select" value={doneSort} onChange={(e) => setDoneSort(e.target.value)}>
                 <option value="date-desc">Date: Most recent first</option>
                 <option value="date-asc">Date: Oldest first</option>
@@ -525,8 +532,8 @@ const Admin = () => {
         </div>
 
         <div className="mt-2 small text-muted">
-          {tab === "upcoming" && <>Showing <strong>{upcomingCamps.length}</strong> upcoming of {camps.length} total camps</>}
           {tab === "all" && <>Showing <strong>{allCamps.length}</strong> camps</>}
+          {tab === "upcoming" && <>Showing <strong>{upcomingCamps.length}</strong> upcoming of {camps.length} total camps</>}
           {tab === "done" && <>Showing <strong>{doneCamps.length}</strong> done of {camps.length} total camps</>}
         </div>
       </div>
@@ -534,16 +541,6 @@ const Admin = () => {
       {/* Camp Lists */}
       {loadingCamps ? (
         <p>Loading camps...</p>
-      ) : tab === "upcoming" ? (
-        <div className="row g-3">
-          {upcomingCamps.length ? (
-            upcomingCamps.map((camp) => <CampCard key={camp._id} camp={camp} isPastOverride={false} />)
-          ) : (
-            <div className="col-12">
-              <div className="alert alert-light border text-center">No upcoming camps match your filters.</div>
-            </div>
-          )}
-        </div>
       ) : tab === "all" ? (
         <div className="row g-3">
           {allCamps.length ? (
@@ -557,6 +554,16 @@ const Admin = () => {
           ) : (
             <div className="col-12">
               <div className="alert alert-light border text-center">No camps match your filters.</div>
+            </div>
+          )}
+        </div>
+      ) : tab === "upcoming" ? (
+        <div className="row g-3">
+          {upcomingCamps.length ? (
+            upcomingCamps.map((camp) => <CampCard key={camp._id} camp={camp} isPastOverride={false} />)
+          ) : (
+            <div className="col-12">
+              <div className="alert alert-light border text-center">No upcoming camps match your filters.</div>
             </div>
           )}
         </div>
