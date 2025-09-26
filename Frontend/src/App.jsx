@@ -14,7 +14,7 @@ const App = () => {
     <Router>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home />} /> 
           
         <Route path="/register" element={<DonorRegistration />} />
         <Route path="/register/:campName" element={<DonorRegistration />} /> {/* ✅ Add this line */}
