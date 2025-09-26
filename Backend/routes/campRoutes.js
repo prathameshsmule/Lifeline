@@ -22,31 +22,6 @@ router.post('/', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Error adding camp', error: err.message });
   }
 });
-// Delete camp (admin) — removes the camp and all its donors
-router.delete('/:id', verifyToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid Camp ID' });
-    }
-
-    // optional: check existence first (better error)
-    const existed = await Camp.findById(id);
-    if (!existed) return res.status(404).json({ message: 'Camp not found' });
-
-    // Transaction to keep things consistent
-    const session = await mongoose.startSession();
-    await session.withTransaction(async () => {
-      await Donor.deleteMany({ camp: id }).session(session);
-      await Camp.findByIdAndDelete(id).session(session);
-    });
-    session.endSession();
-
-    res.json({ message: 'Camp and its donors deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ message: 'Error deleting camp', error: err.message });
-  }
-});
 
 // AFTER (public)
 router.get('/', async (req, res) => {
