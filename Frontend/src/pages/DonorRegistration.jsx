@@ -1,84 +1,185 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState } from "react"
+import axios from "axios"
+import "./DonorRegister.css"
 
 const DonorRegister = () => {
   const [formData, setFormData] = useState({
     name: "",
-    dob: "",
     age: "",
-    weight: "",
+    gender: "",
     bloodGroup: "",
-    email: "",
     phone: "",
+    email: "",
     address: "",
     camp: "",
-    remark: ""
-  });
+    remark: "",
+  })
 
-  const [camps, setCamps] = useState([]);
-
-  // Fetch camps from backend
-  useEffect(() => {
-    axios
-      .get("https://www.lifelinebloodcenter.org/api/camps")
-      .then((res) => setCamps(res.data))
-      .catch((err) => console.error(err));
-  }, []);
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState("")
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+    const { name, value } = e.target
+    setFormData({ ...formData, [name]: value })
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
+    setLoading(true)
+    setMessage("")
+
     try {
-      await axios.post("https://www.lifelinebloodcenter.org/api/donors", {
-        ...formData,
-        camp: formData.camp // ✅ ObjectId of camp
-      });
-      alert("Donor registered successfully!");
+      const res = await axios.post(
+        "https://www.lifelinebloodcenter.org/api/donors",
+        formData
+      )
+      setMessage("✅ Donor registered successfully!")
       setFormData({
         name: "",
-        dob: "",
         age: "",
-        weight: "",
+        gender: "",
         bloodGroup: "",
-        email: "",
         phone: "",
+        email: "",
         address: "",
         camp: "",
-        remark: ""
-      });
-    } catch (error) {
-      alert("Error registering donor: " + error.response?.data?.message);
+        remark: "",
+      })
+    } catch (err) {
+      setMessage(
+        "❌ Error registering donor: " +
+          (err.response?.data?.message || err.message)
+      )
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="donor-form">
-      <input name="name" placeholder="Name" value={formData.name} onChange={handleChange} required />
-      <input type="date" name="dob" value={formData.dob} onChange={handleChange} required />
-      <input type="number" name="age" placeholder="Age" value={formData.age} onChange={handleChange} required />
-      <input type="number" name="weight" placeholder="Weight" value={formData.weight} onChange={handleChange} required />
-      <input name="bloodGroup" placeholder="Blood Group" value={formData.bloodGroup} onChange={handleChange} required />
-      <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required />
-      <input name="phone" placeholder="Phone" value={formData.phone} onChange={handleChange} required />
-      <input name="address" placeholder="Address" value={formData.address} onChange={handleChange} required />
+    <div>
+      <form onSubmit={handleSubmit} className="donor-form">
+        <h2>Donor Registration</h2>
 
-      <select name="camp" value={formData.camp} onChange={handleChange} required>
-        <option value="">Select Camp</option>
-        {camps.map((camp) => (
-          <option key={camp._id} value={camp._id}>
-            {camp.name}
-          </option>
-        ))}
-      </select>
+        <div className="form-group">
+          <label>Name</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+          />
+        </div>
 
-      <textarea name="remark" placeholder="Remark" value={formData.remark} onChange={handleChange}></textarea>
+        <div className="form-group">
+          <label>Age</label>
+          <input
+            type="number"
+            name="age"
+            value={formData.age}
+            onChange={handleChange}
+            required
+            min="18"
+            max="65"
+          />
+        </div>
 
-      <button type="submit">Register</button>
-    </form>
-  );
-};
+        <div className="form-group">
+          <label>Gender</label>
+          <select
+            name="gender"
+            value={formData.gender}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
 
-export default DonorRegister;
+        <div className="form-group">
+          <label>Blood Group</label>
+          <select
+            name="bloodGroup"
+            value={formData.bloodGroup}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select Blood Group</option>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label>Phone</label>
+          <input
+            type="tel"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange}
+            required
+            pattern="[0-9]{10}"
+            placeholder="10-digit number"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Email</label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Address</label>
+          <textarea
+            name="address"
+            value={formData.address}
+            onChange={handleChange}
+            required
+          ></textarea>
+        </div>
+
+        <div className="form-group">
+          <label>Camp</label>
+          <input
+            type="text"
+            name="camp"
+            value={formData.camp}
+            onChange={handleChange}
+            placeholder="Camp ID or Name"
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Remark</label>
+          <textarea
+            name="remark"
+            value={formData.remark}
+            onChange={handleChange}
+          ></textarea>
+        </div>
+
+        <button type="submit" disabled={loading}>
+          {loading ? "Registering..." : "Register"}
+        </button>
+
+        {message && <p style={{ textAlign: "center", marginTop: "10px" }}>{message}</p>}
+      </form>
+    </div>
+  )
+}
+
+export default DonorRegister
