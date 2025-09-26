@@ -7,9 +7,11 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// === Public Routes ===
+/**
+ * === Public Routes ===
+ */
 
-// Get all camps (for registration page)
+// ✅ Get all camps (for registration page)
 router.get('/public', async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: -1 });
@@ -19,35 +21,22 @@ router.get('/public', async (req, res) => {
   }
 });
 
-// POST /api/donors
+// ✅ Donor Registration (POST)
 router.post('/donors', async (req, res) => {
   try {
     const donor = new Donor(req.body);
     await donor.save();
     res.status(201).json({ message: 'Donor registered successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Error registering donor' });
+    res.status(500).json({ message: 'Error registering donor', error: err.message });
   }
 });
 
+/**
+ * === Admin Routes (Protected) ===
+ */
 
-// ✅ Get All Camps with donor count (and coupons included)
-router.get('/', async (req, res) => {
-  try {
-    const camps = await Camp.find().sort({ date: 1 })
-
-    // Aggregate donor counts per camp
-    const donorCounts = await Donor.aggregate([
-      {
-        $group: {
-          _id: '$camp',
-          count: { $sum: 1 }
-        }
-      }
-    ])
-// === Admin Routes (Protected) ===
-
-// Create new camp
+// ✅ Create new camp
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { name, location, date, organizerName, organizerContact, proName, hospitalName } = req.body;
@@ -64,7 +53,7 @@ router.post('/', verifyToken, async (req, res) => {
   }
 });
 
-// Get all camps with donor counts
+// ✅ Get all camps with donor counts
 router.get('/with-count', verifyToken, async (req, res) => {
   try {
     const camps = await Camp.find().sort({ date: 1 });
@@ -80,7 +69,7 @@ router.get('/with-count', verifyToken, async (req, res) => {
   }
 });
 
-// Get single camp with donor count
+// ✅ Get single camp with donor count
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
