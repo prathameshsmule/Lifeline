@@ -252,7 +252,7 @@ const DonorRegistration = () => {
             >
               <option value="">Select Camp</option>
               {camps.map(c => (
-                <option key={c._id} value={c.name}>{c.name}</option>
+                <option key={c._id} value={c.name}>{c.name}</option> 
               ))}
             </select>
           </div>
