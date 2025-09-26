@@ -19,6 +19,18 @@ router.get('/public', async (req, res) => {
   }
 });
 
+// POST /api/donors
+router.post('/donors', async (req, res) => {
+  try {
+    const donor = new Donor(req.body);
+    await donor.save();
+    res.status(201).json({ message: 'Donor registered successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error registering donor' });
+  }
+});
+
+
 // ✅ Get All Camps with donor count (and coupons included)
 router.get('/', async (req, res) => {
   try {
