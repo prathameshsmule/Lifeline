@@ -2,13 +2,10 @@ import React, { useState, useEffect, Suspense } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
-
 import autoTable from "jspdf-autotable";
 import "../styles/Admin.css";
 
-// Lazy-load QR to keep initial bundle smaller (optional but nice)
 const QRCode = React.lazy(() => import("qrcode.react"));
-
 const API_BASE = "https://www.lifelinebloodcenter.org/api";
 
 const Admin = () => {
@@ -17,23 +14,17 @@ const Admin = () => {
   const [selectedCamp, setSelectedCamp] = useState(null);
   const [showQR, setShowQR] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
-
-  // NEW: camp search & sort
   const [campQuery, setCampQuery] = useState("");
-  const [campSort, setCampSort] = useState("newest"); // 'newest' | 'oldest'
+  const [campSort, setCampSort] = useState("newest");
 
   const [loadingDonors, setLoadingDonors] = useState(false);
   const [loadingCamps, setLoadingCamps] = useState(false);
   const [editDonorId, setEditDonorId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [newCamp, setNewCamp] = useState({
-    name: "",
-    location: "",
-    date: "",
-    organizerName: "",
-    organizerContact: "",
-    proName: "",
-    hospitalName: "",
+    name: "", location: "", date: "",
+    organizerName: "", organizerContact: "",
+    proName: "", hospitalName: "",
   });
 
   const navigate = useNavigate();
@@ -50,9 +41,7 @@ const Admin = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCamp]);
 
-  // =========================
-  // Camps
-  // =========================
+  // ========== Camps ==========
   const fetchCamps = async () => {
     setLoadingCamps(true);
     try {
@@ -80,13 +69,9 @@ const Admin = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setNewCamp({
-        name: "",
-        location: "",
-        date: "",
-        organizerName: "",
-        organizerContact: "",
-        proName: "",
-        hospitalName: "",
+        name: "", location: "", date: "",
+        organizerName: "", organizerContact: "",
+        proName: "", hospitalName: "",
       });
       await fetchCamps();
       alert("Camp added successfully!");
@@ -96,28 +81,7 @@ const Admin = () => {
     }
   };
 
-  // OPTIONAL: if you added the backend DELETE /camps/:id, wire it here.
-  const handleDeleteCamp = async (campId) => {
-    if (!window.confirm("Delete this camp and ALL its donors? This cannot be undone.")) return;
-    try {
-      await axios.delete(`${API_BASE}/camps/${campId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (selectedCamp === campId) {
-        setSelectedCamp(null);
-        setDonors([]);
-      }
-      await fetchCamps();
-      alert("Camp deleted successfully");
-    } catch (err) {
-      console.error(err.response || err);
-      alert(err?.response?.data?.message || "Error deleting camp");
-    }
-  };
-
-  // =========================
-  // Donors
-  // =========================
+  // ========== Donors ==========
   const fetchDonors = async () => {
     if (!selectedCamp) return;
     setLoadingDonors(true);
@@ -142,7 +106,7 @@ const Admin = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       await fetchDonors();
-      await fetchCamps();
+      await fetchCamps(); // refresh counts
       alert("Donor deleted successfully!");
     } catch (err) {
       console.error(err.response || err);
@@ -174,9 +138,7 @@ const Admin = () => {
     }
   };
 
-  // =========================
-  // Utils
-  // =========================
+  // ========== Utils ==========
   const handleLogout = () => {
     localStorage.removeItem("admin-token");
     navigate("/admin-login");
@@ -208,7 +170,6 @@ const Admin = () => {
     `${d?.name ?? ""} ${d?.bloodGroup ?? ""} ${d?.phone ?? ""}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // NEW: filter + sort camps
   const filteredCamps = camps
     .filter((c) => {
       const needle = campQuery.trim().toLowerCase();
@@ -259,7 +220,7 @@ const Admin = () => {
               required
             >
               <option value="">Select Hospital</option>
-              {["Apollo Hospital", "Fortis Hospital", "AIIMS", "Nanavati Hospital", "Tata Memorial Hospital", "Other"].map((h, i) => (
+              {["Apollo Hospital","Fortis Hospital","AIIMS","Nanavati Hospital","Tata Memorial Hospital","Other"].map((h, i) => (
                 <option key={i} value={h}>{h}</option>
               ))}
             </select>
@@ -268,7 +229,7 @@ const Admin = () => {
         <button type="submit" className="btn btn-primary mt-3">Add Camp</button>
       </form>
 
-      {/* NEW: Camp Filters Bar */}
+      {/* Camp Filters */}
       <div className="admin-card border p-3 rounded mb-3">
         <div className="row g-2 align-items-center">
           <div className="col-md-8">
@@ -281,11 +242,7 @@ const Admin = () => {
             />
           </div>
           <div className="col-md-4">
-            <select
-              className="form-select"
-              value={campSort}
-              onChange={(e) => setCampSort(e.target.value)}
-            >
+            <select className="form-select" value={campSort} onChange={(e) => setCampSort(e.target.value)}>
               <option value="newest">Sort: Newest first</option>
               <option value="oldest">Sort: Oldest first</option>
             </select>
@@ -296,7 +253,7 @@ const Admin = () => {
         </div>
       </div>
 
-      {/* Camp Cards */}
+      {/* Camp Cards (NO Delete Camp button) */}
       {loadingCamps ? (
         <p>Loading camps...</p>
       ) : (
@@ -325,13 +282,9 @@ const Admin = () => {
                   </div>
 
                   <div className="d-flex flex-wrap gap-2">
-                    <button
-                      className="btn btn-outline-danger btn-sm"
-                      onClick={() => setSelectedCamp(camp._id)}
-                    >
+                    <button className="btn btn-outline-danger btn-sm" onClick={() => setSelectedCamp(camp._id)}>
                       View Donors
                     </button>
-
                     <button
                       className="btn btn-sm btn-outline-primary"
                       onClick={() => {
@@ -342,20 +295,11 @@ const Admin = () => {
                     >
                       Copy Registration Link
                     </button>
-
                     <button
                       className="btn btn-sm btn-outline-secondary"
                       onClick={() => setShowQR((prev) => ({ ...prev, [camp._id]: !prev[camp._id] }))}
                     >
                       {showQR[camp._id] ? "Hide QR" : "Show QR"}
-                    </button>
-
-                    {/* OPTIONAL: Delete Camp (requires backend route) */}
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() => handleDeleteCamp(camp._id)}
-                    >
-                      Delete Camp
                     </button>
                   </div>
 
@@ -378,7 +322,7 @@ const Admin = () => {
         </div>
       )}
 
-      {/* Donor Table */}
+      {/* Donor Table (Delete donor stays) */}
       {selectedCamp && (
         <div className="mt-5 admin-card border p-3 rounded">
           <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
