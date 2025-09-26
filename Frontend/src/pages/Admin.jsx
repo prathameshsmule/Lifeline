@@ -28,13 +28,13 @@ const Admin = () => {
     hospitalName: "",
   });
 
-  // Filters
+  // Filters / Tabs
   const [campQuery, setCampQuery] = useState("");
-  const [onlyComingSoon, setOnlyComingSoon] = useState(false); // ≤ 7 days
-  const [upcomingSort, setUpcomingSort] = useState("date-asc"); // date-asc | date-desc
-  const [doneSort, setDoneSort] = useState("date-desc");       // date-desc | date-asc
-  const [allSort, setAllSort] = useState("date-desc");         // date-desc | date-asc
-  const [tab, setTab] = useState("upcoming"); // upcoming | all | done
+  const [onlyComingSoon, setOnlyComingSoon] = useState(false); // ≤7 days
+  const [upcomingSort, setUpcomingSort] = useState("date-asc");
+  const [doneSort, setDoneSort] = useState("date-desc");
+  const [allSort, setAllSort] = useState("date-desc");
+  const [tab, setTab] = useState("all"); // ✅ open on ALL first
 
   const navigate = useNavigate();
   const token = localStorage.getItem("admin-token");
@@ -64,10 +64,7 @@ const Admin = () => {
     const diffMs = target - today;
     return Math.floor(diffMs / (1000 * 60 * 60 * 24));
   };
-  const isUpcoming = (d) => {
-    if (!d) return false;
-    return daysUntil(d) >= 0;
-  };
+  const isUpcoming = (d) => (d ? daysUntil(d) >= 0 : false);
   const isSoon = (d, windowDays = 7) => {
     if (!d) return false;
     const du = daysUntil(d);
@@ -118,9 +115,7 @@ const Admin = () => {
   };
 
   // ========= Add Camp =========
-  const handleNewCampChange = (e) => {
-    setNewCamp({ ...newCamp, [e.target.name]: e.target.value });
-  };
+  const handleNewCampChange = (e) => setNewCamp({ ...newCamp, [e.target.name]: e.target.value });
 
   const handleNewCampSubmit = async (e) => {
     e.preventDefault();
@@ -153,7 +148,7 @@ const Admin = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       await fetchDonors();
-      await fetchCamps(); // refresh counts
+      await fetchCamps();
       alert("Donor deleted successfully!");
     } catch (err) {
       console.error(err.response || err);
@@ -166,9 +161,7 @@ const Admin = () => {
     setEditForm({ ...donor });
   };
 
-  const handleEditChange = (e) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value });
-  };
+  const handleEditChange = (e) => setEditForm({ ...editForm, [e.target.name]: e.target.value });
 
   const handleEditSave = async (id) => {
     try {
@@ -291,7 +284,7 @@ const Admin = () => {
     const past = isPastOverride ?? !isUpcoming(toDate(camp?.date));
     return (
       <div className="col-md-4">
-        <div className="card h-100">
+        <div className="card h-100 camp-card">
           <div className="card-body">
             <h5 className="card-title text-danger d-flex justify-content-between align-items-start">
               <span>{camp.name}</span>
@@ -381,7 +374,7 @@ const Admin = () => {
         </div>
       </div>
 
-      {/* URGENT BANNER: only for upcoming tab */}
+      {/* URGENT (only for upcoming) */}
       {tab === "upcoming" && !!urgentCamps.length && (
         <div className="alert alert-warning d-flex align-items-center gap-2 mt-3" role="alert">
           <strong>Heads up:</strong>
@@ -400,9 +393,9 @@ const Admin = () => {
         </div>
       )}
 
-      {/* Add Camp Form */}
-      <form onSubmit={handleNewCampSubmit} className="border p-3 rounded mb-4 bg-light">
-        <h5>Add New Camp</h5>
+      {/* Add Camp */}
+      <form onSubmit={handleNewCampSubmit} className="border p-3 rounded mb-4 bg-light card-soft">
+        <h5 className="mb-3">Add New Camp</h5>
         <div className="row g-2">
           {["name", "location", "date", "organizerName", "organizerContact", "proName"].map((field, idx) => (
             <div className="col-md-4" key={idx}>
@@ -439,8 +432,8 @@ const Admin = () => {
         </button>
       </form>
 
-      {/* Tabs + Filters */}
-      <div className="border rounded p-2 mb-3 filter-bar">
+      {/* Tabs (row 1) */}
+      <div className="border rounded p-2 mb-2 filter-bar card-soft">
         <div className="d-flex align-items-center gap-2 flex-wrap">
           <div className="btn-group" role="group" aria-label="Camp tabs">
             <button
@@ -465,69 +458,68 @@ const Admin = () => {
               Done
             </button>
           </div>
+        </div>
 
-          {/* Shared search */}
-          <div className="ms-auto d-flex align-items-end gap-2 flex-wrap" style={{ flex: 1 }}>
-            <div className="flex-grow-1" style={{ minWidth: 260 }}>
-              <label className="form-label mb-1">Search camps</label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search by name, location, hospital, organizer…"
-                value={campQuery}
-                onChange={(e) => setCampQuery(e.target.value)}
-              />
-            </div>
-
-            {/* Per-tab sort & filters */}
-            {tab === "upcoming" && (
-              <>
-                <div>
-                  <label className="form-label mb-1">Sort by</label>
-                  <select
-                    className="form-select"
-                    value={upcomingSort}
-                    onChange={(e) => setUpcomingSort(e.target.value)}
-                  >
-                    <option value="date-asc">Date: Soonest first</option>
-                    <option value="date-desc">Date: Latest first</option>
-                  </select>
-                </div>
-                <div className="form-check mt-4">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id="onlySoon"
-                    checked={onlyComingSoon}
-                    onChange={(e) => setOnlyComingSoon(e.target.checked)}
-                  />
-                  <label className="form-check-label" htmlFor="onlySoon">
-                    Coming soon (≤ 7 days)
-                  </label>
-                </div>
-              </>
-            )}
-
-            {tab === "all" && (
-              <div>
-                <label className="form-label mb-1">Sort by</label>
-                <select className="form-select" value={allSort} onChange={(e) => setAllSort(e.target.value)}>
-                  <option value="date-desc">Date: Most recent first</option>
-                  <option value="date-asc">Date: Oldest first</option>
-                </select>
-              </div>
-            )}
-
-            {tab === "done" && (
-              <div>
-                <label className="form-label mb-1">Sort by</label>
-                <select className="form-select" value={doneSort} onChange={(e) => setDoneSort(e.target.value)}>
-                  <option value="date-desc">Date: Most recent first</option>
-                  <option value="date-asc">Date: Oldest first</option>
-                </select>
-              </div>
-            )}
+        {/* Search + per-tab filters (row 2) */}
+        <div className="d-flex align-items-end gap-3 flex-wrap mt-3">
+          <div className="flex-grow-1" style={{ minWidth: 280 }}>
+            <label className="form-label mb-1">Search camps</label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Search by name, location, hospital, organizer…"
+              value={campQuery}
+              onChange={(e) => setCampQuery(e.target.value)}
+            />
           </div>
+
+          {tab === "upcoming" && (
+            <>
+              <div>
+                <label className="form-label mb-1">Sort by</label>
+                <select
+                  className="form-select"
+                  value={upcomingSort}
+                  onChange={(e) => setUpcomingSort(e.target.value)}
+                >
+                  <option value="date-asc">Date: Soonest first</option>
+                  <option value="date-desc">Date: Latest first</option>
+                </select>
+              </div>
+              <div className="form-check mt-4">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="onlySoon"
+                  checked={onlyComingSoon}
+                  onChange={(e) => setOnlyComingSoon(e.target.checked)}
+                />
+                <label className="form-check-label" htmlFor="onlySoon">
+                  Coming soon (≤ 7 days)
+                </label>
+              </div>
+            </>
+          )}
+
+          {tab === "all" && (
+            <div>
+              <label className="form-label mb-1">Sort by</label>
+              <select className="form-select" value={allSort} onChange={(e) => setAllSort(e.target.value)}>
+                <option value="date-desc">Date: Most recent first</option>
+                <option value="date-asc">Date: Oldest first</option>
+              </select>
+            </div>
+          )}
+
+          {tab === "done" && (
+            <div>
+              <label className="form-label mb-1">Sort by</label>
+              <select className="form-select" value={doneSort} onChange={(e) => setDoneSort(e.target.value)}>
+                <option value="date-desc">Date: Most recent first</option>
+                <option value="date-asc">Date: Oldest first</option>
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="mt-2 small text-muted">
@@ -557,7 +549,6 @@ const Admin = () => {
               <CampCard
                 key={camp._id}
                 camp={camp}
-                // In All tab, compute past/future per card
                 isPastOverride={!isUpcoming(toDate(camp?.date))}
               />
             ))
