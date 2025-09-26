@@ -186,11 +186,54 @@ const Admin = () => {
   // ========= PDF =========
   const downloadPDF = () => {
     if (!donors.length) return alert("No donors to export.");
+
     const doc = new jsPDF();
+
+    // Figure out selected camp info (if any)
+    const camp = camps.find((c) => c._id === selectedCamp);
+    const campName = camp?.name || "All Camps";
+
+    // Title
     doc.setFontSize(16);
-    const campName = camps.find((c) => c._id === selectedCamp)?.name || "All Camps";
     doc.text(`Donor List for Camp: ${campName}`, 14, 15);
-    const tableColumn = ["#", "Name", "Blood Group", "Age", "Weight (kg)", "Email", "Phone", "Address", "Remark"];
+
+    // Camp details block (shown if a specific camp is selected)
+    let startY = 22;
+    doc.setFontSize(11);
+    if (camp) {
+      const campLines = [
+        `Date: ${camp.date ? new Date(camp.date).toLocaleDateString() : "N/A"}`,
+        `Location: ${camp.location || "N/A"}`,
+        `Organizer: ${camp.organizerName || "N/A"} (${camp.organizerContact || "N/A"})`,
+        `PRO: ${camp.proName || "N/A"}`,
+        `Hospital: ${camp.hospitalName || "N/A"}`,
+        `Camp ID: ${camp._id}`,
+      ];
+
+      // Print each line; adjust startY accordingly
+      campLines.forEach((line, i) => {
+        doc.text(line, 14, startY + i * 6);
+      });
+      startY += campLines.length * 6 + 4; // spacing before table
+    } else {
+      // No specific camp selected (exporting "all camps")
+      doc.text("Camps: All", 14, startY);
+      startY += 10;
+    }
+
+    // Donor table
+    const tableColumn = [
+      "#",
+      "Name",
+      "Blood Group",
+      "Age",
+      "Weight (kg)",
+      "Email",
+      "Phone",
+      "Address",
+      "Remark",
+    ];
+
     const tableRows = donors.map((donor, index) => [
       index + 1,
       donor.name ?? "",
@@ -202,7 +245,15 @@ const Admin = () => {
       donor.address ?? "",
       donor.remark ?? "",
     ]);
-    autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20 });
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: startY,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [220, 53, 69] }, // optional styling similar to Bootstrap danger
+    });
+
     doc.save(`DonorList_${campName}.pdf`);
   };
 
@@ -404,7 +455,14 @@ const Admin = () => {
       <form onSubmit={handleNewCampSubmit} className="border p-3 rounded mb-4 bg-light">
         <h5>Add New Camp</h5>
         <div className="row g-2">
-          {["name", "location", "date", "organizerName", "organizerContact", "proName"].map((field, idx) => (
+          {[
+            "name",
+            "location",
+            "date",
+            "organizerName",
+            "organizerContact",
+            "proName",
+          ].map((field, idx) => (
             <div className="col-md-4" key={idx}>
               <input
                 className="form-control"
@@ -417,21 +475,17 @@ const Admin = () => {
               />
             </div>
           ))}
+          {/* Hospital: changed from dropdown to free-text input */}
           <div className="col-md-4">
-            <select
-              className="form-select"
+            <input
+              className="form-control"
+              type="text"
               name="hospitalName"
+              placeholder="Hospital Name"
               value={newCamp.hospitalName}
               onChange={handleNewCampChange}
               required
-            >
-              <option value="">Select Hospital</option>
-              {["Apollo Hospital", "Fortis Hospital", "AIIMS", "Nanavati Hospital", "Tata Memorial Hospital", "Other"].map((h, i) => (
-                <option key={i} value={h}>
-                  {h}
-                </option>
-              ))}
-            </select>
+            />
           </div>
         </div>
         <button type="submit" className="btn btn-primary mt-3">
