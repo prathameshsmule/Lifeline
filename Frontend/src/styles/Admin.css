@@ -1,1 +1,62 @@
+/* Root spacing + soft background */
+.admin-root {
+  background: #fafafa;
+}
 
+/* Sticky header polish */
+.admin-sticky-header {
+  position: sticky;
+  top: 70px;
+  margin-top: 70px;
+  background: #ffffffcc; /* slight translucency */
+  backdrop-filter: blur(6px);
+  border: 1px solid #eee;
+  border-radius: 14px;
+  z-index: 1050;
+}
+
+/* Generic card enhancement */
+.admin-card {
+  background: #fff;
+  border: 1px solid #eee !important;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.04);
+  border-radius: 16px;
+}
+
+/* Camp card micro-interactions */
+.admin-camp-card {
+  border: 1px solid #eee;
+  border-radius: 18px;
+  transition: transform .15s ease, box-shadow .15s ease;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+}
+.admin-camp-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+}
+
+/* Light badge for date */
+.admin-badge {
+  border: 1px solid #e8e8e8;
+  font-weight: 500;
+}
+
+/* Table polish */
+.admin-table th, .admin-table td {
+  vertical-align: middle;
+}
+.admin-table thead th {
+  letter-spacing: 0.3px;
+}
+.admin-table tbody tr:hover {
+  background: #fff8f8;
+}
+
+/* Buttons tighten up on small screens */
+@media (max-width: 576px) {
+  .admin-sticky-header {
+    top: 56px;
+    margin-top: 56px;
+    border-radius: 10px;
+  }
+}
