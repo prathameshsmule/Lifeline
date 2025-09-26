@@ -37,21 +37,28 @@ router.get('/', async (req, res) => {
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    // 1) Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid Camp ID' });
     }
 
-    const deleted = await Camp.findByIdAndDelete(id);
-    if (!deleted) {
+    // 2) Ensure the camp exists
+    const camp = await Camp.findById(id);
+    if (!camp) {
       return res.status(404).json({ message: 'Camp not found' });
     }
 
-    // Optional: also remove donors for this camp (uncomment if you want cascade delete)
-    // await Donor.deleteMany({ camp: id });
+    // 3) (Optional but recommended) remove donors tied to this camp
+    //    If you want to keep donors, comment this out.
+    await Donor.deleteMany({ camp: id });
 
-    res.json({ message: 'Camp deleted successfully' });
+    // 4) Delete the camp
+    await Camp.findByIdAndDelete(id);
+
+    return res.json({ message: 'Camp deleted successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Error deleting camp', error: err.message });
+    return res.status(500).json({ message: 'Error deleting camp', error: err.message });
   }
 });
 
