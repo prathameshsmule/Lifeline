@@ -18,7 +18,7 @@ router.post('/', verifyToken, async (req, res) => {
       hospitalName
   
     } = req.body
-
+ 
     if (!name) return res.status(400).json({ message: 'Camp name is required' })
 
     const existing = await Camp.findOne({ name })
