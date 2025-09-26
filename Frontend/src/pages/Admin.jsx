@@ -6,7 +6,12 @@ import autoTable from "jspdf-autotable";
 import "../styles/Admin.css";
 
 const QRCode = React.lazy(() => import("qrcode.react"));
-const API_BASE = "https://www.lifelinebloodcenter.org/api";
+
+// 🔧 Point to the API you’re actually running (prod vs local)
+const API_BASE =
+  import.meta?.env?.VITE_API_BASE ||
+  process.env.REACT_APP_API_BASE ||
+  "https://www.lifelinebloodcenter.org/api";
 
 const Admin = () => {
   const [donors, setDonors] = useState([]);
@@ -24,14 +29,14 @@ const Admin = () => {
   const [editDonorId, setEditDonorId] = useState(null);
   const [editForm, setEditForm] = useState({});
 
-  // Add Camp form
+  // Add Camp
   const [newCamp, setNewCamp] = useState({
     name: "", location: "", date: "",
     organizerName: "", organizerContact: "",
     proName: "", hospitalName: "",
   });
 
-  // Camp EDIT (Modal) state
+  // Camp EDIT (Modal)
   const [editCampId, setEditCampId] = useState(null);
   const [editCampForm, setEditCampForm] = useState({
     name: "", location: "", date: "",
@@ -54,7 +59,7 @@ const Admin = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCamp]);
 
-  // ========== Camps ==========
+  // ========= Camps =========
   const fetchCamps = async () => {
     setLoadingCamps(true);
     try {
@@ -63,9 +68,11 @@ const Admin = () => {
       });
       setCamps(res.data || []);
     } catch (err) {
-      console.error("Failed to fetch camps:", err.response || err);
+      console.error("Failed to fetch camps:", err?.response || err);
       setCamps([]);
-      if ([401, 403].includes(err.response?.status)) handleLogout();
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) handleLogout();
+      alert(err?.response?.data?.message || err?.message || "Error fetching camps");
     } finally {
       setLoadingCamps(false);
     }
@@ -89,12 +96,12 @@ const Admin = () => {
       await fetchCamps();
       alert("Camp added successfully!");
     } catch (err) {
-      console.error(err.response || err);
-      alert(err?.response?.data?.message || "Error adding camp.");
+      console.error("Add camp failed:", err?.response || err);
+      alert(err?.response?.data?.message || err?.message || "Error adding camp.");
     }
   };
 
-  // ========== Camp Edit (Modal) ==========
+  // ========= Camp Edit (Modal) =========
   const startEditCamp = (camp) => {
     setEditCampId(camp._id);
     setEditCampForm({
@@ -123,11 +130,14 @@ const Admin = () => {
   };
 
   const saveCampEdits = async () => {
-    if (!editCampId) return;
+    if (!editCampId) return alert("No camp selected.");
     try {
       const payload = { ...editCampForm };
-      // Avoid overwriting with empty strings
-      Object.keys(payload).forEach((k) => payload[k] === "" && delete payload[k]);
+      // trim + remove blanks to avoid failing validators with empty strings
+      for (const k of Object.keys(payload)) {
+        if (typeof payload[k] === "string") payload[k] = payload[k].trim();
+        if (payload[k] === "") delete payload[k];
+      }
 
       const res = await axios.put(`${API_BASE}/camps/${editCampId}`, payload, {
         headers: { Authorization: `Bearer ${token}` },
@@ -138,7 +148,12 @@ const Admin = () => {
         setCamps((prev) =>
           prev.map((c) =>
             c._id === editCampId
-              ? { ...c, ...updated, donorCount: typeof updated.donorCount === "number" ? updated.donorCount : c.donorCount }
+              ? {
+                  ...c,
+                  ...updated,
+                  donorCount:
+                    typeof updated.donorCount === "number" ? updated.donorCount : c.donorCount,
+                }
               : c
           )
         );
@@ -149,12 +164,23 @@ const Admin = () => {
       cancelEditCamp();
       alert("Camp updated successfully!");
     } catch (err) {
-      console.error(err.response || err);
-      alert(err?.response?.data?.message || "Error updating camp");
+      console.error("Camp update failed:", err?.response || err);
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.message || err?.message || "Error updating camp";
+      if (status === 409) {
+        alert("Another camp with this name already exists. Please choose a different name.");
+      } else if (status === 400 || status === 422) {
+        alert(`Validation error: ${msg}`);
+      } else if (status === 401 || status === 403) {
+        alert("Your session expired. Please log in again.");
+        handleLogout();
+      } else {
+        alert(`Update failed: ${msg}`);
+      }
     }
   };
 
-  // ========== Donors ==========
+  // ========= Donors =========
   const fetchDonors = async () => {
     if (!selectedCamp) return;
     setLoadingDonors(true);
@@ -164,9 +190,11 @@ const Admin = () => {
       });
       setDonors(res.data || []);
     } catch (err) {
-      console.error("Failed to fetch donors:", err.response || err);
+      console.error("Failed to fetch donors:", err?.response || err);
       setDonors([]);
-      if ([401, 403].includes(err.response?.status)) handleLogout();
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) handleLogout();
+      alert(err?.response?.data?.message || err?.message || "Error fetching donors");
     } finally {
       setLoadingDonors(false);
     }
@@ -182,8 +210,8 @@ const Admin = () => {
       await fetchCamps(); // refresh counts
       alert("Donor deleted successfully!");
     } catch (err) {
-      console.error(err.response || err);
-      alert(err?.response?.data?.message || "Error deleting donor");
+      console.error("Delete donor failed:", err?.response || err);
+      alert(err?.response?.data?.message || err?.message || "Error deleting donor");
     }
   };
 
@@ -206,12 +234,12 @@ const Admin = () => {
       setDonors((prev) => prev.map((d) => (d._id === id ? updated : d)));
       setEditDonorId(null);
     } catch (err) {
-      console.error(err.response || err);
-      alert(err?.response?.data?.message || "Error saving donor update");
+      console.error("Update donor failed:", err?.response || err);
+      alert(err?.response?.data?.message || err?.message || "Error saving donor update");
     }
   };
 
-  // ========== Utils ==========
+  // ========= Utils =========
   const handleLogout = () => {
     localStorage.removeItem("admin-token");
     navigate("/admin-login");
@@ -240,7 +268,9 @@ const Admin = () => {
   };
 
   const filteredDonors = donors.filter((d) =>
-    `${d?.name ?? ""} ${d?.bloodGroup ?? ""} ${d?.phone ?? ""}`.toLowerCase().includes(searchTerm.toLowerCase())
+    `${d?.name ?? ""} ${d?.bloodGroup ?? ""} ${d?.phone ?? ""}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
   );
 
   const filteredCamps = camps
@@ -493,7 +523,8 @@ const Admin = () => {
                               try {
                                 await axios.put(`${API_BASE}/donors/${donor._id}`, { remark }, { headers: { Authorization: `Bearer ${token}` } });
                                 setDonors((prev) => prev.map((d) => (d._id === donor._id ? { ...d, remark } : d)));
-                              } catch {
+                              } catch (err) {
+                                console.error("Update remark failed:", err?.response || err);
                                 alert("Error updating remark");
                               }
                             }}
@@ -526,7 +557,7 @@ const Admin = () => {
         </div>
       )}
 
-      {/* ===== Edit Camp Modal (controlled, no external JS needed) ===== */}
+      {/* ===== Edit Camp Modal ===== */}
       {isEditModalOpen && (
         <>
           {/* Backdrop */}
