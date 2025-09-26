@@ -10,28 +10,36 @@ import campRoutes from './routes/campRoutes.js'
 import adminRoutes from './routes/adminRoutes.js'
 
 dotenv.config()
+
 const app = express()
 
+// CORS configuration
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'https://www.lifelinebloodcenter.org',
-  methods: ['GET','POST','PUT','DELETE'],
-  allowedHeaders: ['Content-Type','Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
-}));
+}))
 
 app.use(express.json())
 
-// DB connection and admin initialization
+// Connect to DB and initialize admin
 connectDB().then(() => initializeAdmin())
 
 // Root test route
-app.get("/", (req, res) => res.send("✅ Blood Donation Backend is running!"))
+app.get("/", (req, res) => {
+  res.send("✅ Blood Donation Backend is running!")
+})
+
+// Health-check
+app.get('/api', (req, res) => {
+  res.json({ message: 'API is working 🚀' })
+})
 
 // Feature routes
 app.use('/api/donors', donorRoutes)
+app.use('/api/admin', adminRoutes)   // ✅ updated to /api/admin
 app.use('/api/camps', campRoutes)
-app.use('/api/admin', adminRoutes)
 
-// Start server
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
