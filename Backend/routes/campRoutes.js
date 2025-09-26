@@ -33,6 +33,29 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Delete camp (admin)
+router.delete('/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid Camp ID' });
+    }
+
+    const deleted = await Camp.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Camp not found' });
+    }
+
+    // Optional: also remove donors for this camp (uncomment if you want cascade delete)
+    // await Donor.deleteMany({ camp: id });
+
+    res.json({ message: 'Camp deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error deleting camp', error: err.message });
+  }
+});
+
+
 // Admin: All camps with donor counts
 router.get('/with-count', verifyToken, async (req, res) => {
   try {
